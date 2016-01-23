@@ -425,7 +425,7 @@ class TestSettingsMixin(object):
             self.assertEquals(self.settings.keys(), [KEY_2])
 
 
-class TestSystemSettings(unittest.TestCase, TestSettings):
+class TestSystemSettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
         self.settings = IDASettings(ORG_1, PLUGIN_1).system
 
@@ -434,7 +434,7 @@ class TestSystemSettings(unittest.TestCase, TestSettings):
         self.settings._settings.clear()
 
 
-class TestUserSettings(unittest.TestCase, TestSettings):
+class TestUserSettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
         self.settings = IDASettings(ORG_1, PLUGIN_1).user
 
@@ -443,7 +443,7 @@ class TestUserSettings(unittest.TestCase, TestSettings):
         self.settings._settings.clear()
 
 
-class TestDirectorySettings(unittest.TestCase, TestSettings):
+class TestDirectorySettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
         self.settings = IDASettings(ORG_1, PLUGIN_1).directory
 
@@ -451,7 +451,7 @@ class TestDirectorySettings(unittest.TestCase, TestSettings):
         # cheating, sorry
         self.settings._settings.clear()
 
-class TestIdbSettings(unittest.TestCase, TestSettings):
+class TestIdbSettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
         self.settings = IDASettings(ORG_1, PLUGIN_1).idb
 
