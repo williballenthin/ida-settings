@@ -217,9 +217,9 @@ class DirectoryIDASettings(IDASettingsBase, DictMixin):
     @property
     def _settings(self):
         directory = os.path.dirname(idc.GetIdbPath())
-        config_name = "{org:s}-{plugin_name:s}".format(org=self._organization, plugin_name=self._plugin_name)
+        config_name = "{org:s}.{plugin_name:s}.config.ini".format(org=self._organization, plugin_name=self._plugin_name)
         config_path = os.path.join(directory, config_name)
-        return QtCore.QSettings(config_path)
+        return QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
 
     def get_value(self, key):
         v = self._settings.value(key)
@@ -329,13 +329,13 @@ class IDASettings(object):
 
 
 def import_settings(settings, path):
-    other = QtCore.QSettings(config_path)
+    other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
     for k in other.allKeys():
         settings[k] = other.value(k)
 
 
 def export_settings(settings, path):
-    other = QtCore.QSettings(config_path)
+    other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
     for k, v in settings.iteritems():
         other.setValue(k, v)
 
