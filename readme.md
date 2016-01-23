@@ -22,7 +22,7 @@ Example setting a working directory configuration value:
     settings = IDASettings("com.fireeye.flare", "MSDN-doc")
     settings.directory["verbosity"] = "high"
 
-Use the properties "system", "user", "directory" and "idb"
+Use the properties `system`, `user`, `directory` and `idb`
 to scope configuration accesses and mutations to the global
 system, current user, working directory, or current IDB file.
 
@@ -34,7 +34,7 @@ Treat a settings instance like a dictionary. For example:
     settings["verbosity"] --> "high"
     settings.keys() --> ["verbosity"]
     settings.values() --> ["high"]
-    settings.items() --> [("verbosity", "high')]
+    settings.items() --> [("verbosity", "high")]
 
 To export the current effective settings, use the `export_settings`
 function. For example:
