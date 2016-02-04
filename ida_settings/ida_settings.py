@@ -221,13 +221,17 @@ class UserIDASettings(IDASettingsBase, DictMixin):
             yield k
 
 
+def get_current_directory_config_path():
+    directory = os.path.dirname(idc.GetIdbPath())
+    config_name = ".ida-settings.ini"
+    config_path = os.path.join(directory, config_name)
+    return config_path
+
+
 class DirectoryIDASettings(IDASettingsBase, DictMixin):
     @property
     def _settings(self):
-        directory = os.path.dirname(idc.GetIdbPath())
-        config_name = ".ida-settings.ini"
-        config_path = os.path.join(directory, config_name)
-        s = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
+        s = QtCore.QSettings(get_current_directory_config_path(), QtCore.QSettings.IniFormat)
         s.beginGroup(self._plugin_name)
         return s
 
@@ -413,11 +417,7 @@ class IDASettings(object):
  
     @property
     def directory_plugin_names(self):
-        # TODO: remove duplication
-        directory = os.path.dirname(idc.GetIdbPath())
-        config_name = ".ida-settings.ini"
-        config_path = os.path.join(directory, config_name)
-        s = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
+        s = QtCore.QSettings(get_current_directory_config_path(), QtCore.QSettings.IniFormat)
         return s.childGroups()[:]
  
     @property
