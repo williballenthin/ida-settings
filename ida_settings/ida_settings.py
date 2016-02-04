@@ -411,6 +411,43 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         del_netnode_plugin_name(self._plugin_name)
 
 
+class ClassPropertyDescriptor(object):
+    """
+    Supports class properties.
+    """
+    def __init__(self, fget, fset=None):
+        self.fget = fget
+        self.fset = fset
+
+    def __get__(self, obj, klass=None):
+        if klass is None:
+            klass = type(obj)
+        return self.fget.__get__(obj, klass)()
+
+    def __set__(self, obj, value):
+        if not self.fset:
+            raise AttributeError("can't set attribute")
+        type_ = type(obj)
+        return self.fset.__get__(obj, type_)(value)
+
+    def setter(self, func):
+        if not isinstance(func, (classmethod, staticmethod)):
+            func = classmethod(func)
+        self.fset = func
+        return self    
+
+
+def classproperty(func):
+    """
+    Decorator that denotes a class property (as opposed to an instance property).
+    via: http://stackoverflow.com/a/5191224/87207
+    """
+    if not isinstance(func, (classmethod, staticmethod)):
+        func = classmethod(func)
+
+    return ClassPropertyDescriptor(func)
+
+
 class IDASettings(object):
     def __init__(self, plugin_name):
         super(IDASettings, self).__init__()
@@ -454,20 +491,20 @@ class IDASettings(object):
 
         raise KeyError("key not found")
 
-    @property
+    @classproperty
     def system_plugin_names(self):
         return get_qsettings(QtCore.QSettings.SystemScope).childGroups()[:]
 
-    @property
+    @classproperty
     def user_plugin_names(self):
         return get_qsettings(QtCore.QSettings.UserScope).childGroups()[:]
  
-    @property
+    @classproperty
     def directory_plugin_names(self):
         return QtCore.QSettings(get_current_directory_config_path(),
                                 QtCore.QSettings.IniFormat).childGroups()[:]
  
-    @property
+    @classproperty
     def idb_plugin_names(self):
         return get_netnode_plugin_names()
 
@@ -503,7 +540,7 @@ class TestSync(unittest.TestCase):
 
     def test_user(self):
         IDASettings(PLUGIN_1).user.set_value(KEY_1, VALUE_1)
-        self.assertEqual(IDASettings(PLUGIN_1).system.get_value(KEY_1), VALUE_1)
+        self.assertEqual(IDASettings(PLUGIN_1).user.get_value(KEY_1), VALUE_1)
 
     def test_directory(self):
         IDASettings(PLUGIN_1).directory.set_value(KEY_1, VALUE_1)
@@ -633,6 +670,61 @@ class TestUserAndSystemSettings(unittest.TestCase):
                 self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
 
 
+class TestPluginNamesAccessors(unittest.TestCase):
+    def test_system_plugin_names(self):
+        self.assertEqual(set(IDASettings.system_plugin_names), set([]))
+        s1 = IDASettings(PLUGIN_1).system
+        with clearing(s1):
+            s1[KEY_1] = VALUE_1
+            self.assertEqual(set(IDASettings.system_plugin_names), set([PLUGIN_1]))
+
+            s2 = IDASettings(PLUGIN_2).system
+            with clearing(s2):
+                s2[KEY_1] = VALUE_1
+                self.assertEqual(set(IDASettings.system_plugin_names), set([PLUGIN_1, PLUGIN_2]))
+        self.assertEqual(set(IDASettings.system_plugin_names), set([]))
+
+    def test_user_plugin_names(self):
+        self.assertEqual(set(IDASettings.user_plugin_names), set([]))
+        s1 = IDASettings(PLUGIN_1).user
+        with clearing(s1):
+            s1[KEY_1] = VALUE_1
+            self.assertEqual(set(IDASettings.user_plugin_names), set([PLUGIN_1]))
+
+            s2 = IDASettings(PLUGIN_2).user
+            with clearing(s2):
+                s2[KEY_1] = VALUE_1
+                self.assertEqual(set(IDASettings.user_plugin_names), set([PLUGIN_1, PLUGIN_2]))
+        self.assertEqual(set(IDASettings.user_plugin_names), set([]))
+
+    def test_directory_plugin_names(self):
+        self.assertEqual(set(IDASettings.directory_plugin_names), set([]))
+        s1 = IDASettings(PLUGIN_1).directory
+        with clearing(s1):
+            s1[KEY_1] = VALUE_1
+            self.assertEqual(set(IDASettings.directory_plugin_names), set([PLUGIN_1]))
+
+            s2 = IDASettings(PLUGIN_2).directory
+            with clearing(s2):
+                s2[KEY_1] = VALUE_1
+                self.assertEqual(set(IDASettings.directory_plugin_names), set([PLUGIN_1, PLUGIN_2]))
+        self.assertEqual(set(IDASettings.directory_plugin_names), set([]))
+
+    def test_idb_plugin_names(self):
+        self.assertEqual(set(IDASettings.idb_plugin_names), set([]))
+        s1 = IDASettings(PLUGIN_1).idb
+        with clearing(s1):
+            s1[KEY_1] = VALUE_1
+            self.assertEqual(set(IDASettings.idb_plugin_names), set([PLUGIN_1]))
+
+            s2 = IDASettings(PLUGIN_2).idb
+            with clearing(s2):
+                s2[KEY_1] = VALUE_1
+                self.assertEqual(set(IDASettings.idb_plugin_names), set([PLUGIN_1, PLUGIN_2]))
+
+        self.assertEqual(set(IDASettings.idb_plugin_names), set([]))
+
+ 
 def main():
     try:
         unittest.main()
