@@ -33,9 +33,9 @@ Treat a settings instance like a dictionary. For example:
     "verbosity" in settings --> False
     settings["verbosity"] = "high"
     settings["verbosity"] --> "high"
-    settings.keys() --> ["verbosity"]
-    settings.values() --> ["high"]
-    settings.items() --> [("verbosity", "high')]
+    settings.keys()       --> ["verbosity"]
+    settings.values()     --> ["high"]
+    settings.items()      --> [("verbosity", "high')]
 
 To export the current effective settings, use the `export_settings`
 function. For example:
@@ -48,6 +48,14 @@ the open IDB, use the `import_settings` function. For example:
 
     settings = IDASettings("MSDN-doc")
     import_settings(settings.idb, "/home/user/desktop/current.ini")
+
+Enumerate the plugin names for the various levels using the
+IDASettings class properties:
+
+    IDASettings.system_plugin_names     --> ["plugin-1", "plugin-2"]
+    IDASettings.user_plugin_names       --> ["plugin-3", "plugin-4"]
+    IDASettings.directory_plugin_names  --> ["plugin-5", "plugin-6"]
+    IDASettings.idb_plugin_names        --> ["plugin-7", "plugin-8"]
 
 This module is a single file that you can include in IDAPython
 plugin module or scripts. It is licensed under the Apache 2.0
