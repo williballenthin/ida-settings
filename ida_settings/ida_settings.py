@@ -58,6 +58,7 @@ Author: Willi Ballenthin <william.ballenthin@fireeye.com>
 import os
 import re
 import abc
+import json
 import unittest
 import contextlib
 
@@ -327,7 +328,7 @@ def add_netnode_plugin_name(plugin_name):
       the current IDB.
     Note that this implicitly uses the open IDB via the idc iterface.
     """
-    current_names = set(get_current_plugin_names())
+    current_names = set(get_netnode_plugin_names())
     if plugin_name in current_names:
         return
 
@@ -343,7 +344,7 @@ def del_netnode_plugin_name(plugin_name):
       the current IDB.
     Note that this implicitly uses the open IDB via the idc iterface.
     """
-    current_names = set(get_current_plugin_names())
+    current_names = set(get_netnode_plugin_names())
     if plugin_name not in current_names:
         return
 
@@ -405,7 +406,7 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
 
     def clear(self):
         for k in self.get_keys():
-            self.delete_value(k)
+            self.del_value(k)
         self._netnode.kill()
         del_netnode_plugin_name(self._plugin_name)
 
