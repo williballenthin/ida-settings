@@ -27,30 +27,43 @@ Use the properties "system", "user", "directory" and "idb"
 to scope configuration accesses and mutations to the global
 system, current user, working directory, or current IDB file.
 
-Treat a settings instance like a dictionary. For example:
+Plugins that write settings should pick the appropriate
+scope for their settings. Plugins that read settings should
+fetch them from the default scope. This allows for precedence
+of scopes, such as the current IDB over system-wide configuration.
+For example:
 
     settings = IDASettings("MSDN-doc")
-    "verbosity" in settings --> False
-    settings["verbosity"] = "high"
+    # when writing, use a scope:
+    settings.user["verbosity"] = "high"
+    
+    # when reading, use the default scope:
     settings["verbosity"] --> "high"
-    settings.keys()       --> ["verbosity"]
-    settings.values()     --> ["high"]
-    settings.items()      --> [("verbosity", "high')]
+
+Generally, treat a settings instance like a dictionary. For example:
+
+    settings = IDASettings("MSDN-doc")
+    "verbosity" in settings.user --> False
+    settings.user["verbosity"] = "high"
+    settings.user["verbosity"] --> "high"
+    settings.user.keys()       --> ["verbosity"]
+    settings.user.values()     --> ["high"]
+    settings.user.items()      --> [("verbosity", "high')]
 
 The value of a particular settings entry must be a small, JSON-encodable
 value. For example, these are fine:
 
     settings = IDASettings("MSDN-doc")
-    settings["verbosity"] = "high"
-    settings["count"] = 1
-    settings["percentage"] = 0.75
-    settings["filenames"] = ["a.txt", "b.txt"]
-    settings["aliases"] = {"bp": "breakpoint", "g": "go"}
+    settings.user["verbosity"] = "high"
+    settings.user["count"] = 1
+    settings.user["percentage"] = 0.75
+    settings.user["filenames"] = ["a.txt", "b.txt"]
+    settings.user["aliases"] = {"bp": "breakpoint", "g": "go"}
 
 and these are not:
 
-    settings["object"] = hashlib.md5()      # this is not JSON-encodable
-    settings["buf"] = "\x90" * 4096 * 1024  # this is not small
+    settings.user["object"] = hashlib.md5()      # this is not JSON-encodable
+    settings.user["buf"] = "\x90" * 4096 * 1024  # this is not small
 
 To export the current effective settings, use the `export_settings`
 function. For example:
