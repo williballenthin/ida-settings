@@ -186,7 +186,7 @@ class DictMixin:
         try:
             return self[key]
         except KeyError:
-            return Default
+            return default
 
     def __contains__(self, key):
         try:
@@ -516,6 +516,23 @@ class IDASettings(object):
             pass
 
         raise KeyError("key not found")
+
+    def __getitem__(self, key):
+        return self.get_value(key)
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def __contains__(self, key):
+        try:
+            if self[key] is not None:
+                return True
+            return False
+        except KeyError:
+            return False
 
     @classproperty
     def system_plugin_names(self):
