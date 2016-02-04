@@ -37,6 +37,21 @@ Treat a settings instance like a dictionary. For example:
     settings.values()     --> ["high"]
     settings.items()      --> [("verbosity", "high')]
 
+The value of a particular settings entry must be a small, JSON-encodable
+value. For example, these are fine:
+
+    settings = IDASettings("MSDN-doc")
+    settings["verbosity"] = "high"
+    settings["count"] = 1
+    settings["percentage"] = 0.75
+    settings["filenames"] = ["a.txt", "b.txt"]
+    settings["aliases"] = {"bp": "breakpoint", "g": "go"}
+
+and these are not:
+
+    settings["object"] = hashlib.md5()      # this is not JSON-encodable
+    settings["buf"] = "\x90" * 4096 * 1024  # this is not small
+
 To export the current effective settings, use the `export_settings`
 function. For example:
 
@@ -88,7 +103,7 @@ class IDASettingsInterface:
         Fetch the settings value with the given key, or raise KeyError.
 
         type key: basestring
-        rtype value: bytes
+        rtype value: Union[basestring, int, float, List, Dict]
         """
         raise NotImplemented
 
@@ -98,7 +113,7 @@ class IDASettingsInterface:
         Set the settings value with the given key.
 
         type key: basestring
-        type value: bytes
+        type value: Union[basestring, int, float, List, Dict]
         """
         raise NotImplemented
 
@@ -156,8 +171,6 @@ class DictMixin:
     def __setitem__(self, key, value):
         if not isinstance(key, basestring):
             raise TypeError("key must be a string")
-        if not isinstance(value, bytes):
-            raise TypeError("value must be a bytes")
         return self.set_value(key, value)
 
     def __delitem__(self, key):
@@ -220,10 +233,10 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
         v = self._settings.value(key)
         if v is None:
             raise KeyError("key not found")
-        return v
+        return json.loads(v)
 
     def set_value(self, key, value):
-        return self._settings.setValue(key, value)
+        return self._settings.setValue(key, json.dumps(value))
 
     def del_value(self, key):
         return self._settings.remove(key)
@@ -247,10 +260,10 @@ class UserIDASettings(IDASettingsBase, DictMixin):
         v = self._settings.value(key)
         if v is None:
             raise KeyError("key not found")
-        return v
+        return json.loads(v)
 
     def set_value(self, key, value):
-        return self._settings.setValue(key, value)
+        return self._settings.setValue(key, json.dumps(value))
 
     def del_value(self, key):
         return self._settings.remove(key)
@@ -282,10 +295,10 @@ class DirectoryIDASettings(IDASettingsBase, DictMixin):
         v = self._settings.value(key)
         if v is None:
             raise KeyError("key not found")
-        return v
+        return json.loads(v)
 
     def set_value(self, key, value):
-        return self._settings.setValue(key, value)
+        return self._settings.setValue(key, json.dumps(value))
 
     def del_value(self, key):
         return self._settings.remove(key)
@@ -387,16 +400,20 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         if v is None:
             raise KeyError("key not found")
 
-        return v
+        return json.loads(v)
 
     def set_value(self, key, value):
+        """
+        The IDB netnode API only supports values up to 1024 bytes long,
+         so set_value raises ValueError if the provided value is too big.
+        """
         if not isinstance(key, basestring):
             raise TypeError("key must be a string")
 
-        if not isinstance(value, bytes):
-            raise TypeError("value must be a bytes")
-
-        self._netnode.hashset(key, value)
+        v = json.dumps(value)
+        if len(v) >= 1024:
+            raise ValueError("value too large")
+        self._netnode.hashset(key, v)
         add_netnode_plugin_name(self._plugin_name)
 
     def del_value(self, key):
@@ -535,6 +552,10 @@ KEY_1 = "key_1"
 KEY_2 = "key_2"
 VALUE_1 = bytes("hello")
 VALUE_2 = bytes("goodbye")
+VALUE_INT = 69
+VALUE_FLOAT = 69.69
+VALUE_LIST = ["a", "b", "c"]
+VALUE_DICT = {"a": 1, "b": "2", "c": 3.0}
 
 
 class TestSync(unittest.TestCase):
@@ -610,6 +631,12 @@ class TestSettingsMixin(object):
             self.assertEquals(self.settings.values(), [VALUE_1, VALUE_2])
             del self.settings[KEY_1]
             self.assertEquals(self.settings.keys(), [KEY_2])
+
+    def test_types(self):
+        with clearing(self.settings):
+            for v in [VALUE_INT, VALUE_FLOAT, VALUE_LIST, VALUE_DICT]:
+                self.settings.set_value(KEY_1, v)
+                self.assertEquals(self.settings[KEY_1], v)
 
 
 class TestSystemSettings(unittest.TestCase, TestSettingsMixin):
