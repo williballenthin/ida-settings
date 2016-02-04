@@ -75,24 +75,50 @@ class IDASettingsInterface:
 
     @abc.abstractmethod
     def get_value(self, key):
-        # type key: basestring
-        # rtype value: bytes
+        """
+        Fetch the settings value with the given key, or raise KeyError.
+
+        type key: basestring
+        rtype value: bytes
+        """
         raise NotImplemented
 
     @abc.abstractmethod
     def set_value(self, key, value):
-        # type key: basestring
-        # type value: bytes
+        """
+        Set the settings value with the given key.
+
+        type key: basestring
+        type value: bytes
+        """
         raise NotImplemented
 
     @abc.abstractmethod
     def del_value(self, key):
-        # type key: basestring
+        """
+        Remove the settings value with the given key.
+        Does not raise an error if the key does not already exist.
+
+        type key: basestring
+        """
         raise NotImplemented
 
     @abc.abstractmethod
     def get_keys(self):
-        # rtype: Iterable[basestring]
+        """
+        Fetch an iterable of the settings keys, which are strings.
+
+        rtype: Iterable[basestring]
+        """
+        raise NotImplemented
+
+    @abc.abstractmethod
+    def clear(self):
+        """
+        Delete all settings for this settings instance.
+
+        rtype: None
+        """
         raise NotImplemented
 
 
@@ -197,6 +223,10 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
         for k in self._settings.allKeys():
             yield k
 
+    def clear(self):
+        # Qt: the empty string removes all entries in the current group
+        self._settings.remove("")
+
 
 class UserIDASettings(IDASettingsBase, DictMixin):
     @property
@@ -219,6 +249,10 @@ class UserIDASettings(IDASettingsBase, DictMixin):
     def get_keys(self):
         for k in self._settings.allKeys():
             yield k
+
+    def clear(self):
+        # Qt: the empty string removes all entries in the current group
+        self._settings.remove("")
 
 
 def get_current_directory_config_path():
@@ -250,6 +284,10 @@ class DirectoryIDASettings(IDASettingsBase, DictMixin):
     def get_keys(self):
         for k in self._settings.allKeys():
             yield k
+
+    def clear(self):
+        # Qt: the empty string removes all entries in the current group
+        self._settings.remove("")
 
 
 def get_meta_netnode():
@@ -299,6 +337,25 @@ def add_netnode_plugin_name(plugin_name):
     n.hashset(PLUGIN_NAMES_KEY, json.dumps(list(current_names)))
 
 
+def del_netnode_plugin_name(plugin_name):
+    """
+    Remove the given plugin name to the list of plugin names registered in
+      the current IDB.
+    Note that this implicitly uses the open IDB via the idc iterface.
+    """
+    current_names = set(get_current_plugin_names())
+    if plugin_name not in current_names:
+        return
+
+    try:
+        current_names.remove(plugin_name)
+    except KeyError:
+        return
+
+    n = get_meta_netnode()
+    n.hashset(PLUGIN_NAMES_KEY, json.dumps(list(current_names)))
+
+
 class IDBIDASettings(IDASettingsBase, DictMixin):
     @property
     def _netnode(self):
@@ -308,7 +365,6 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
             plugin_name=self._plugin_name)
         # namelen: 0, do_create: True
         n = idaapi.netnode(node_name, 0, True)
-        add_netnode_plugin_name(self._plugin_name)
         return n
 
     def get_value(self, key):
@@ -332,6 +388,7 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
             raise TypeError("value must be a bytes")
 
         self._netnode.hashset(key, value)
+        add_netnode_plugin_name(self._plugin_name)
 
     def del_value(self, key):
         if not isinstance(key, basestring):
@@ -345,6 +402,12 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         while k != idaapi.BADNODE and k is not None:
             yield k
             k = self._netnode.hashnxt(k)
+
+    def clear(self):
+        for k in self.get_keys():
+            self.delete_value(k)
+        self._netnode.kill()
+        del_netnode_plugin_name(self._plugin_name)
 
 
 class IDASettings(object):
@@ -392,33 +455,16 @@ class IDASettings(object):
 
     @property
     def system_plugin_names(self):
-        """
-        directory = os.path.dirname(idc.GetIdbPath())
-        config_name = ".ida-settings.ini"
-        config_path = os.path.join(directory, config_name)
-        s = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
-        s.beginGroup(self._plugin_name)
-
-        node_name = "$ {org:s}.{application:s}.{plugin_name:s}".format(
-            org=IDA_SETTINGS_ORGANIZATION,
-            application=IDA_SETTINGS_APPLICATION,
-            plugin_name=self._plugin_name)
-        # namelen: 0, do_create: True
-        return idaapi.netnode(node_name, 0, True)
-        return s
-        """
-        s = get_qsettings(QtCore.QSettings.SystemScope)
-        return s.childGroups()[:]
+        return get_qsettings(QtCore.QSettings.SystemScope).childGroups()[:]
 
     @property
     def user_plugin_names(self):
-        s = get_qsettings(QtCore.QSettings.UserScope)
-        return s.childGroups()[:]
+        return get_qsettings(QtCore.QSettings.UserScope).childGroups()[:]
  
     @property
     def directory_plugin_names(self):
-        s = QtCore.QSettings(get_current_directory_config_path(), QtCore.QSettings.IniFormat)
-        return s.childGroups()[:]
+        return QtCore.QSettings(get_current_directory_config_path(),
+                                QtCore.QSettings.IniFormat).childGroups()[:]
  
     @property
     def idb_plugin_names(self):
@@ -469,22 +515,21 @@ class TestSync(unittest.TestCase):
 
 
 @contextlib.contextmanager
-def clearing(test):
-    test.clear()
+def clearing(settings):
+    settings.clear()
     try:
         yield
     finally:
-        test.clear()
+        settings.clear()
 
 
 class TestSettingsMixin(object):
     """
     A mixin that adds standard tests test cases with:
-      - self.clear()
       - self.settings, an IDASettingsInterface implementor
     """
     def test_set(self):
-        with clearing(self):
+        with clearing(self.settings):
             # simple set
             self.settings.set_value(KEY_1, VALUE_1)
             self.assertEqual(self.settings.get_value(KEY_1), VALUE_1)
@@ -493,14 +538,14 @@ class TestSettingsMixin(object):
             self.assertEqual(self.settings.get_value(KEY_1), VALUE_2)
 
     def test_del(self):
-        with clearing(self):
+        with clearing(self.settings):
             self.settings.set_value(KEY_1, VALUE_1)
             self.settings.del_value(KEY_1)
             with self.assertRaises(KeyError):
                 self.settings.get_value(KEY_1)
 
     def test_keys(self):
-        with clearing(self):
+        with clearing(self.settings):
             self.settings.del_value(KEY_1)
             self.settings.del_value(KEY_2)
             self.settings.set_value(KEY_1, VALUE_1)
@@ -509,7 +554,7 @@ class TestSettingsMixin(object):
             self.assertEqual(list(self.settings.get_keys()), [KEY_1, KEY_2])
 
     def test_dict(self):
-        with clearing(self):
+        with clearing(self.settings):
             self.assertFalse(KEY_1 in self.settings)
             self.settings[KEY_1] = VALUE_1
             self.assertEquals(self.settings[KEY_1], VALUE_1)
@@ -525,35 +570,20 @@ class TestSystemSettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
         self.settings = IDASettings(PLUGIN_1).system
 
-    def clear(self):
-        # cheating, sorry
-        self.settings._settings.clear()
-
 
 class TestUserSettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
         self.settings = IDASettings(PLUGIN_1).user
-
-    def clear(self):
-        # cheating, sorry
-        self.settings._settings.clear()
 
 
 class TestDirectorySettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
         self.settings = IDASettings(PLUGIN_1).directory
 
-    def clear(self):
-        # cheating, sorry
-        self.settings._settings.clear()
 
 class TestIdbSettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
         self.settings = IDASettings(PLUGIN_1).idb
-
-    def clear(self):
-        # cheating, sorry
-        self.settings._netnode.kill()
 
 
 class TestUserAndSystemSettings(unittest.TestCase):
@@ -561,19 +591,15 @@ class TestUserAndSystemSettings(unittest.TestCase):
         self.system = IDASettings(PLUGIN_1).system
         self.user = IDASettings(PLUGIN_1).user
 
-    def clear(self):
-        # cheating, sorry
-        self.system._settings.clear()
-        self.user._settings.clear()
-
     def test_system_fallback(self):
         """
         QSettings instances with scope "user" automatically fall back to
          scope "system" if the key doesn't exist.
         """
-        with clearing(self):
-            self.system.set_value(KEY_1, VALUE_1)
-            self.assertEqual(self.user.get_value(KEY_1), VALUE_1)
+        with clearing(self.system):
+            with clearing(self.user):
+                self.system.set_value(KEY_1, VALUE_1)
+                self.assertEqual(self.user.get_value(KEY_1), VALUE_1)
 
 
 class TestUserAndSystemSettings(unittest.TestCase):
@@ -584,30 +610,26 @@ class TestUserAndSystemSettings(unittest.TestCase):
         self.idb = IDASettings(PLUGIN_1).idb
         self.mux = IDASettings(PLUGIN_1)
 
-    def clear(self):
-        # cheating, sorry
-        self.system._settings.clear()
-        self.user._settings.clear()
-        self.directory._settings.clear()
-        self.idb._netnode.kill()
-
     def test_user_gt_system(self):
-        with clearing(self):
-            self.system.set_value(KEY_1, VALUE_1)
-            self.user.set_value(KEY_1, VALUE_2)
-            self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
+        with clearing(self.system):
+            with clearing(self.user):
+                self.system.set_value(KEY_1, VALUE_1)
+                self.user.set_value(KEY_1, VALUE_2)
+                self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
 
     def test_directory_gt_user(self):
-        with clearing(self):
-            self.user.set_value(KEY_1, VALUE_1)
-            self.directory.set_value(KEY_1, VALUE_2)
-            self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
+        with clearing(self.user):
+            with clearing(self.directory):
+                self.user.set_value(KEY_1, VALUE_1)
+                self.directory.set_value(KEY_1, VALUE_2)
+                self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
 
     def test_idb_gt_directory(self):
-        with clearing(self):
-            self.directory.set_value(KEY_1, VALUE_1)
-            self.idb.set_value(KEY_1, VALUE_2)
-            self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
+        with clearing(self.directory):
+            with clearing(self.idb):
+                self.directory.set_value(KEY_1, VALUE_1)
+                self.idb.set_value(KEY_1, VALUE_2)
+                self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
 
 
 def main():
