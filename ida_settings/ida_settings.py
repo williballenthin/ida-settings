@@ -169,16 +169,17 @@ IDA_SETTINGS_ORGANIZATION = "IDAPython"
 IDA_SETTINGS_APPLICATION = "IDA-Settings"
 
 
-def get_qsettings(scope, group):
+def get_qsettings(scope, group=None):
     s = QtCore.QSettings(scope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION)
-    s.beginGroup(group)
+    if group is not None:
+        s.beginGroup(group)
     return s
     
 
 class SystemIDASettings(IDASettingsBase, DictMixin):
     @property
     def _settings(self):
-        return get_qsettings(QtCore.QSettings.SystemScope, self._plugin_name)
+        return get_qsettings(QtCore.QSettings.SystemScope, group=self._plugin_name)
 
     def get_value(self, key):
         v = self._settings.value(key)
@@ -200,7 +201,7 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
 class UserIDASettings(IDASettingsBase, DictMixin):
     @property
     def _settings(self):
-        return get_qsettings(QtCore.QSettings.UserScope, self._plugin_name)
+        return get_qsettings(QtCore.QSettings.UserScope, group=self._plugin_name)
 
     def get_value(self, key):
         # apparently QSettings falls back to System scope here?
@@ -247,6 +248,53 @@ class DirectoryIDASettings(IDASettingsBase, DictMixin):
             yield k
 
 
+def get_meta_netnode():
+    """
+    Get the netnode used to store settings metadata in the current IDB.
+    Note that this implicitly uses the open IDB via the idc iterface.
+    """
+    node_name = "$ {org:s}.{application:s}".format(
+        org=IDA_SETTINGS_ORGANIZATION,
+        application=IDA_SETTINGS_APPLICATION)
+    # namelen: 0, do_create: True
+    return idaapi.netnode(node_name, 0, True)
+
+
+PLUGIN_NAMES_KEY = "plugin_names"
+
+
+def get_netnode_plugin_names():
+    """
+    Get a iterable of the plugin names registered in the current IDB.
+    Note that this implicitly uses the open IDB via the idc iterface.
+    """
+    n = get_meta_netnode()
+
+    try:
+        v = n.hashval(PLUGIN_NAMES_KEY)
+    except TypeError:
+        return []
+    if v is None:
+        return []
+    return json.loads(v)
+
+
+def add_netnode_plugin_name(plugin_name):
+    """
+    Add the given plugin name to the list of plugin names registered in
+      the current IDB.
+    Note that this implicitly uses the open IDB via the idc iterface.
+    """
+    current_names = set(get_current_plugin_names())
+    if plugin_name in current_names:
+        return
+
+    current_names.add(plugin_name)
+
+    n = get_meta_netnode()
+    n.hashset(PLUGIN_NAMES_KEY, json.dumps(list(current_names)))
+
+
 class IDBIDASettings(IDASettingsBase, DictMixin):
     @property
     def _netnode(self):
@@ -255,7 +303,9 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
             application=IDA_SETTINGS_APPLICATION,
             plugin_name=self._plugin_name)
         # namelen: 0, do_create: True
-        return idaapi.netnode(node_name, 0, True)
+        n = idaapi.netnode(node_name, 0, True)
+        add_netnode_plugin_name(self._plugin_name)
+        return n
 
     def get_value(self, key):
         if not isinstance(key, basestring):
@@ -336,7 +386,45 @@ class IDASettings(object):
 
         raise KeyError("key not found")
 
+    @property
+    def system_plugin_names(self):
+        """
+        directory = os.path.dirname(idc.GetIdbPath())
+        config_name = ".ida-settings.ini"
+        config_path = os.path.join(directory, config_name)
+        s = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
+        s.beginGroup(self._plugin_name)
 
+        node_name = "$ {org:s}.{application:s}.{plugin_name:s}".format(
+            org=IDA_SETTINGS_ORGANIZATION,
+            application=IDA_SETTINGS_APPLICATION,
+            plugin_name=self._plugin_name)
+        # namelen: 0, do_create: True
+        return idaapi.netnode(node_name, 0, True)
+        return s
+        """
+        s = get_qsettings(QtCore.QSettings.SystemScope)
+        return s.childGroups()[:]
+
+    @property
+    def user_plugin_names(self):
+        s = get_qsettings(QtCore.QSettings.UserScope)
+        return s.childGroups()[:]
+ 
+    @property
+    def directory_plugin_names(self):
+        # TODO: remove duplication
+        directory = os.path.dirname(idc.GetIdbPath())
+        config_name = ".ida-settings.ini"
+        config_path = os.path.join(directory, config_name)
+        s = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
+        return s.childGroups()[:]
+ 
+    @property
+    def idb_plugin_names(self):
+        return get_netnode_plugin_names()
+
+ 
 def import_settings(settings, path):
     other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
     for k in other.allKeys():
