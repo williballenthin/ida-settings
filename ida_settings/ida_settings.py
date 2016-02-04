@@ -93,6 +93,10 @@ except ImportError:
     from PySide import QtCore
 
 
+IDA_SETTINGS_ORGANIZATION = "IDAPython"
+IDA_SETTINGS_APPLICATION = "IDA-Settings"
+
+
 # enforce methods required by settings providers
 class IDASettingsInterface:
     __metaclass__ = abc.ABCMeta
@@ -213,21 +217,14 @@ class DictMixin:
         return [(k, v) for k, v in self.iteritems()]
 
 
-IDA_SETTINGS_ORGANIZATION = "IDAPython"
-IDA_SETTINGS_APPLICATION = "IDA-Settings"
-
-
-def get_qsettings(scope, group=None):
-    s = QtCore.QSettings(scope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION)
-    if group is not None:
-        s.beginGroup(group)
-    return s
-    
-
 class SystemIDASettings(IDASettingsBase, DictMixin):
     @property
     def _settings(self):
-        return get_qsettings(QtCore.QSettings.SystemScope, group=self._plugin_name)
+        s = QtCore.QSettings(QtCore.QSettings.SystemScope,
+                             IDA_SETTINGS_ORGANIZATION,
+                             IDA_SETTINGS_APPLICATION)
+        s.beginGroup(self._plugin_name)
+        return s
 
     def get_value(self, key):
         v = self._settings.value(key)
@@ -253,7 +250,11 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
 class UserIDASettings(IDASettingsBase, DictMixin):
     @property
     def _settings(self):
-        return get_qsettings(QtCore.QSettings.UserScope, group=self._plugin_name)
+        s = QtCore.QSettings(QtCore.QSettings.UserScope,
+                             IDA_SETTINGS_ORGANIZATION,
+                             IDA_SETTINGS_APPLICATION)
+        s.beginGroup(self._plugin_name)
+        return s
 
     def get_value(self, key):
         # apparently QSettings falls back to System scope here?
@@ -518,11 +519,15 @@ class IDASettings(object):
 
     @classproperty
     def system_plugin_names(self):
-        return get_qsettings(QtCore.QSettings.SystemScope).childGroups()[:]
+        return QtCore.QSettings(QtCore.QSettings.SystemScope,
+                                IDA_SETTINGS_ORGANIZATION,
+                                IDA_SETTINGS_APPLICATION).childGroups()[:]
 
     @classproperty
     def user_plugin_names(self):
-        return get_qsettings(QtCore.QSettings.UserScope).childGroups()[:]
+        return QtCore.QSettings(QtCore.QSettings.UserScope,
+                                IDA_SETTINGS_ORGANIZATION,
+                                IDA_SETTINGS_APPLICATION).childGroups()[:]
  
     @classproperty
     def directory_plugin_names(self):
