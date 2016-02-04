@@ -104,13 +104,10 @@ def validate(s):
 
 # provide base constructor args required by settings providers
 class IDASettingsBase(IDASettingsInterface):
-    def __init__(self, organization, plugin_name):
+    def __init__(self, plugin_name):
         super(IDASettingsBase, self).__init__()
-        if not validate(organization):
-            raise RuntimeError("invalid organization name")
         if not validate(plugin_name):
             raise RuntimeError("invalid plugin name")
-        self._organization = organization
         self._plugin_name = plugin_name
 
 
@@ -168,10 +165,20 @@ class DictMixin:
         return [(k, v) for k, v in self.iteritems()]
 
 
+IDA_SETTINGS_ORGANIZATION = "IDAPython"
+IDA_SETTINGS_APPLICATION = "IDA-Settings"
+
+
+def get_qsettings(scope, group):
+    s = QtCore.QSettings(scope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION)
+    s.beginGroup(group)
+    return s
+    
+
 class SystemIDASettings(IDASettingsBase, DictMixin):
     @property
     def _settings(self):
-        return QtCore.QSettings(QtCore.QSettings.SystemScope, self._organization, self._plugin_name)
+        return get_qsettings(QtCore.QSettings.SystemScope, self._plugin_name)
 
     def get_value(self, key):
         v = self._settings.value(key)
@@ -193,7 +200,7 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
 class UserIDASettings(IDASettingsBase, DictMixin):
     @property
     def _settings(self):
-        return QtCore.QSettings(QtCore.QSettings.UserScope, self._organization, self._plugin_name)
+        return get_qsettings(QtCore.QSettings.UserScope, self._plugin_name)
 
     def get_value(self, key):
         # apparently QSettings falls back to System scope here?
@@ -217,9 +224,11 @@ class DirectoryIDASettings(IDASettingsBase, DictMixin):
     @property
     def _settings(self):
         directory = os.path.dirname(idc.GetIdbPath())
-        config_name = "{org:s}.{plugin_name:s}.config.ini".format(org=self._organization, plugin_name=self._plugin_name)
+        config_name = ".ida-settings.ini"
         config_path = os.path.join(directory, config_name)
-        return QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
+        s = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
+        s.beginGroup(self._plugin_name)
+        return s
 
     def get_value(self, key):
         v = self._settings.value(key)
@@ -241,7 +250,10 @@ class DirectoryIDASettings(IDASettingsBase, DictMixin):
 class IDBIDASettings(IDASettingsBase, DictMixin):
     @property
     def _netnode(self):
-        node_name = "$ {org:s}.{plugin_name:s}".format(org=self._organization, plugin_name=self._plugin_name)
+        node_name = "$ {org:s}.{application:s}.{plugin_name:s}".format(
+            org=IDA_SETTINGS_ORGANIZATION,
+            application=IDA_SETTINGS_APPLICATION,
+            plugin_name=self._plugin_name)
         # namelen: 0, do_create: True
         return idaapi.netnode(node_name, 0, True)
 
@@ -282,30 +294,27 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
 
 
 class IDASettings(object):
-    def __init__(self, organization, plugin_name):
+    def __init__(self, plugin_name):
         super(IDASettings, self).__init__()
-        if not validate(organization):
-            raise RuntimeError("invalid organization name")
         if not validate(plugin_name):
             raise RuntimeError("invalid plugin name")
-        self._organization = organization
         self._plugin_name = plugin_name
 
     @property
     def idb(self):
-        return IDBIDASettings(self._organization, self._plugin_name)
+        return IDBIDASettings(self._plugin_name)
 
     @property
     def directory(self):
-        return DirectoryIDASettings(self._organization, self._plugin_name)
+        return DirectoryIDASettings(self._plugin_name)
 
     @property
     def user(self):
-        return UserIDASettings(self._organization, self._plugin_name)
+        return UserIDASettings(self._plugin_name)
 
     @property
     def system(self):
-        return SystemIDASettings(self._organization, self._plugin_name)
+        return SystemIDASettings(self._plugin_name)
 
     def get_value(self, key):
         try:
@@ -340,8 +349,6 @@ def export_settings(settings, path):
         other.setValue(k, v)
 
 
-ORG_1 = "com.org.1"
-ORG_2 = "com.org.2"
 PLUGIN_1 = "plugin1"
 PLUGIN_2 = "plugin2"
 KEY_1 = "key_1"
@@ -355,20 +362,21 @@ class TestSync(unittest.TestCase):
     Demonstrate that creating new instances of the settings objects shows the same data.
     """
     def test_system(self):
-        IDASettings(ORG_1, PLUGIN_1).system.set_value(KEY_1, VALUE_1)
-        self.assertEqual(IDASettings(ORG_1, PLUGIN_1).system.get_value(KEY_1), VALUE_1)
+        # this may fail if the user is not running as admin
+        IDASettings(PLUGIN_1).system.set_value(KEY_1, VALUE_1)
+        self.assertEqual(IDASettings(PLUGIN_1).system.get_value(KEY_1), VALUE_1)
 
     def test_user(self):
-        IDASettings(ORG_1, PLUGIN_1).user.set_value(KEY_1, VALUE_1)
-        self.assertEqual(IDASettings(ORG_1, PLUGIN_1).system.get_value(KEY_1), VALUE_1)
+        IDASettings(PLUGIN_1).user.set_value(KEY_1, VALUE_1)
+        self.assertEqual(IDASettings(PLUGIN_1).system.get_value(KEY_1), VALUE_1)
 
     def test_directory(self):
-        IDASettings(ORG_1, PLUGIN_1).directory.set_value(KEY_1, VALUE_1)
-        self.assertEqual(IDASettings(ORG_1, PLUGIN_1).directory.get_value(KEY_1), VALUE_1)
+        IDASettings(PLUGIN_1).directory.set_value(KEY_1, VALUE_1)
+        self.assertEqual(IDASettings(PLUGIN_1).directory.get_value(KEY_1), VALUE_1)
 
     def test_idb(self):
-        IDASettings(ORG_1, PLUGIN_1).idb.set_value(KEY_1, VALUE_1)
-        self.assertEqual(IDASettings(ORG_1, PLUGIN_1).idb.get_value(KEY_1), VALUE_1)
+        IDASettings(PLUGIN_1).idb.set_value(KEY_1, VALUE_1)
+        self.assertEqual(IDASettings(PLUGIN_1).idb.get_value(KEY_1), VALUE_1)
 
 
 
@@ -427,7 +435,7 @@ class TestSettingsMixin(object):
 
 class TestSystemSettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
-        self.settings = IDASettings(ORG_1, PLUGIN_1).system
+        self.settings = IDASettings(PLUGIN_1).system
 
     def clear(self):
         # cheating, sorry
@@ -436,7 +444,7 @@ class TestSystemSettings(unittest.TestCase, TestSettingsMixin):
 
 class TestUserSettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
-        self.settings = IDASettings(ORG_1, PLUGIN_1).user
+        self.settings = IDASettings(PLUGIN_1).user
 
     def clear(self):
         # cheating, sorry
@@ -445,7 +453,7 @@ class TestUserSettings(unittest.TestCase, TestSettingsMixin):
 
 class TestDirectorySettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
-        self.settings = IDASettings(ORG_1, PLUGIN_1).directory
+        self.settings = IDASettings(PLUGIN_1).directory
 
     def clear(self):
         # cheating, sorry
@@ -453,7 +461,7 @@ class TestDirectorySettings(unittest.TestCase, TestSettingsMixin):
 
 class TestIdbSettings(unittest.TestCase, TestSettingsMixin):
     def setUp(self):
-        self.settings = IDASettings(ORG_1, PLUGIN_1).idb
+        self.settings = IDASettings(PLUGIN_1).idb
 
     def clear(self):
         # cheating, sorry
@@ -462,8 +470,8 @@ class TestIdbSettings(unittest.TestCase, TestSettingsMixin):
 
 class TestUserAndSystemSettings(unittest.TestCase):
     def setUp(self):
-        self.system = IDASettings(ORG_1, PLUGIN_1).system
-        self.user = IDASettings(ORG_1, PLUGIN_1).user
+        self.system = IDASettings(PLUGIN_1).system
+        self.user = IDASettings(PLUGIN_1).user
 
     def clear(self):
         # cheating, sorry
@@ -482,11 +490,11 @@ class TestUserAndSystemSettings(unittest.TestCase):
 
 class TestUserAndSystemSettings(unittest.TestCase):
     def setUp(self):
-        self.system = IDASettings(ORG_1, PLUGIN_1).system
-        self.user = IDASettings(ORG_1, PLUGIN_1).user
-        self.directory = IDASettings(ORG_1, PLUGIN_1).directory
-        self.idb = IDASettings(ORG_1, PLUGIN_1).idb
-        self.mux = IDASettings(ORG_1, PLUGIN_1)
+        self.system = IDASettings(PLUGIN_1).system
+        self.user = IDASettings(PLUGIN_1).user
+        self.directory = IDASettings(PLUGIN_1).directory
+        self.idb = IDASettings(PLUGIN_1).idb
+        self.mux = IDASettings(PLUGIN_1)
 
     def clear(self):
         # cheating, sorry
