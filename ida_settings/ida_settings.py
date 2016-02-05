@@ -117,12 +117,14 @@ def import_qt():
         ida_python_path = os.path.dirname(idaapi.__file__)
         sys.path.insert(0, ida_python_path)
         if idaapi.IDA_SDK_VERSION >= 690:
-            from PyQt5 import QtGui
+            from PyQt5 import QtCore
+            return QtCore
         else:
             from PySide import QtCore
+            return QtCore
     finally:
         sys.path = old_path
-import_qt()
+QtCore = import_qt()
     
 
 IDA_SETTINGS_ORGANIZATION = "IDAPython"
