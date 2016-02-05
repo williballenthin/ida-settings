@@ -100,11 +100,30 @@ import contextlib
 
 import idc
 import idaapi
-try:
-    from PyQt5 import QtCore
-except ImportError:
-    from PySide import QtCore
 
+
+# we'll use a function here to avoid polluting our global variable namespace.
+def import_qt():
+    """
+    This nasty piece of code is here to force the loading of IDA's
+     Qt bindings.
+    Without it, Python attempts to load PySide from the site-packages
+     directory, and failing, as it does not play nicely with IDA.
+
+    via: github.com/tmr232/Cute
+    """
+    old_path = sys.path[:]
+    try:
+        ida_python_path = os.path.dirname(idaapi.__file__)
+        sys.path.insert(0, ida_python_path)
+        if idaapi.IDA_SDK_VERSION >= 690:
+            from PyQt5 import QtGui
+        else:
+            from PySide import QtCore
+    finally:
+        sys.path = old_path
+import_qt()
+    
 
 IDA_SETTINGS_ORGANIZATION = "IDAPython"
 IDA_SETTINGS_APPLICATION = "IDA-Settings"
