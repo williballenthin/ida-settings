@@ -93,17 +93,15 @@ Author: Willi Ballenthin <william.ballenthin@fireeye.com>
 """
 import os
 import re
+import sys
 import abc
 import json
 import unittest
 import contextlib
 
-import idc
-import idaapi
-
 
 # we'll use a function here to avoid polluting our global variable namespace.
-def import_qt():
+def import_qtcore():
     """
     This nasty piece of code is here to force the loading of IDA's
      Qt bindings.
@@ -112,19 +110,46 @@ def import_qt():
 
     via: github.com/tmr232/Cute
     """
-    old_path = sys.path[:]
+    has_ida = False
     try:
-        ida_python_path = os.path.dirname(idaapi.__file__)
-        sys.path.insert(0, ida_python_path)
-        if idaapi.IDA_SDK_VERSION >= 690:
+        # if we're running under IDA,
+        # then we'll use IDA's Qt bindings
+        import idaapi
+        has_ida = True
+    except ImportError:
+        # not running under IDA,
+        # so use default Qt installation
+        has_ida = False
+
+    if has_ida:
+        old_path = sys.path[:]
+        try:
+            ida_python_path = os.path.dirname(idaapi.__file__)
+            sys.path.insert(0, ida_python_path)
+            if idaapi.IDA_SDK_VERSION >= 690:
+                from PyQt5 import QtCore
+                return QtCore
+            else:
+                from PySide import QtCore
+                return QtCore
+        finally:
+            sys.path = old_path
+    else:
+        try:
             from PyQt5 import QtCore
             return QtCore
-        else:
+        except ImportError:
+            pass
+        
+        try:
             from PySide import QtCore
             return QtCore
-    finally:
-        sys.path = old_path
-QtCore = import_qt()
+        except ImportError:
+            pass
+
+        raise ImportError("No module named PySide or PyQt")
+
+QtCore = import_qtcore()
     
 
 IDA_SETTINGS_ORGANIZATION = "IDAPython"
@@ -517,7 +542,12 @@ class IDASettings(object):
 
     @property
     def idb(self):
-        return IDBIDASettings(self._plugin_name)
+        try:
+            import idc
+            import idaapi
+            return IDBIDASettings(self._plugin_name)
+        except ImportError:
+            raise EnvironmentError("Must be running in IDA to access IDB settings")
 
     @property
     def directory(self):
