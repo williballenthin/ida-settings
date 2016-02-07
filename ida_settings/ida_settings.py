@@ -216,10 +216,15 @@ class IDASettingsInterface:
         raise NotImplemented
 
 
-# filenames can be alphanumeric, with spaces, dashes, and periods
-FILENAME_RE = re.compile("[A-Za-z0-9 \-\.]+$")
 def validate(s):
-    return FILENAME_RE.match(s) != None
+    # the slash character is used by QSettings to denote a subgroup
+    # we want to have a single nested structure of settings
+    if "/" in s:
+        return False
+    if "\\" in s:
+        # QSettings automatically translates '\' to '/'
+        return False
+    return True
 
 
 # provide base constructor args required by settings providers
