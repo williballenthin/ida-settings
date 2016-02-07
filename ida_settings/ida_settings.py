@@ -100,6 +100,13 @@ import unittest
 import contextlib
 
 
+try:
+    import idc
+    import idaapi
+except ImportError:
+    pass
+
+
 # we'll use a function here to avoid polluting our global variable namespace.
 def import_qtcore():
     """
@@ -533,6 +540,14 @@ def classproperty(func):
     return ClassPropertyDescriptor(func)
 
 
+def ensure_ida_loaded():
+    try:
+        import idc
+        import idaapi
+    except ImportError:
+        raise EnvironmentError("Must be running in IDA to access IDB or directory settings")
+
+
 class IDASettings(object):
     def __init__(self, plugin_name):
         super(IDASettings, self).__init__()
@@ -542,15 +557,12 @@ class IDASettings(object):
 
     @property
     def idb(self):
-        try:
-            import idc
-            import idaapi
-            return IDBIDASettings(self._plugin_name)
-        except ImportError:
-            raise EnvironmentError("Must be running in IDA to access IDB settings")
+        ensure_ida_loaded()
+        return IDBIDASettings(self._plugin_name)
 
     @property
     def directory(self):
+        ensure_ida_loaded()
         return DirectoryIDASettings(self._plugin_name)
 
     @property
@@ -564,11 +576,11 @@ class IDASettings(object):
     def get_value(self, key):
         try:
             return self.idb.get_value(key)
-        except KeyError:
+        except (KeyError, EnvironmentError):
             pass
         try:
             return self.directory.get_value(key)
-        except KeyError:
+        except (KeyError, EnvironmentError):
             pass
         try:
             return self.user.get_value(key)
@@ -612,11 +624,13 @@ class IDASettings(object):
  
     @classproperty
     def directory_plugin_names(self):
+        ensure_ida_loaded()
         return QtCore.QSettings(get_current_directory_config_path(),
                                 QtCore.QSettings.IniFormat).childGroups()[:]
- 
+
     @classproperty
     def idb_plugin_names(self):
+        ensure_ida_loaded()
         return get_netnode_plugin_names()
 
  
@@ -664,7 +678,6 @@ class TestSync(unittest.TestCase):
     def test_idb(self):
         IDASettings(PLUGIN_1).idb.set_value(KEY_1, VALUE_1)
         self.assertEqual(IDASettings(PLUGIN_1).idb.get_value(KEY_1), VALUE_1)
-
 
 
 @contextlib.contextmanager
