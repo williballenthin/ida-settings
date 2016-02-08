@@ -310,9 +310,10 @@ class PermissionError(IOError):
         super(PermissionError, self).__init__("Unable to write to QSettings")
 
 
-class SystemIDASettings(IDASettingsBase, DictMixin):
-    def __init__(self, *args, **kwargs):
-        super(SystemIDASettings, self).__init__(*args, **kwargs)
+class QSettingsIDASettings(object):
+    def __init__(self, qsettings):
+        super(QSettingsIDASettings, self).__init__()
+        self._settings = qsettings
         self._has_perms = None
 
     def _check_perms(self):
@@ -321,14 +322,6 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
         if not self._has_perms:
             raise PermissionError()
     
-    @property
-    def _settings(self):
-        s = QtCore.QSettings(QtCore.QSettings.SystemScope,
-                             IDA_SETTINGS_ORGANIZATION,
-                             IDA_SETTINGS_APPLICATION)
-        s.beginGroup(self._plugin_name)
-        return s
-
     def get_value(self, key):
         v = self._settings.value(key)
         if v is None:
@@ -353,35 +346,54 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
         self._settings.remove("")
 
 
+class SystemIDASettings(IDASettingsBase, DictMixin):
+    def __init__(self, plugin_name, *args, **kwargs):
+        super(SystemIDASettings, self).__init__(plugin_name, *args, **kwargs)
+        s = QtCore.QSettings(QtCore.QSettings.SystemScope,
+                             IDA_SETTINGS_ORGANIZATION,
+                             IDA_SETTINGS_APPLICATION)
+        s.beginGroup(self._plugin_name)
+        self._qsettings = QSettingsIDASettings(s)
+
+    def get_value(self, key):
+        return self._qsettings.get_value(key)
+
+    def set_value(self, key, value):
+        return self._qsettings.set_value(key, value)
+
+    def del_value(self, key):
+        return self._qsettings.del_value(key)
+
+    def get_keys(self):
+        return self._qsettings.get_keys()
+
+    def clear(self):
+        return self._qsettings.clear()
+
+
 class UserIDASettings(IDASettingsBase, DictMixin):
-    @property
-    def _settings(self):
+    def __init__(self, plugin_name, *args, **kwargs):
+        super(UserIDASettings, self).__init__(plugin_name, *args, **kwargs)
         s = QtCore.QSettings(QtCore.QSettings.UserScope,
                              IDA_SETTINGS_ORGANIZATION,
                              IDA_SETTINGS_APPLICATION)
         s.beginGroup(self._plugin_name)
-        return s
+        self._qsettings = QSettingsIDASettings(s)
 
     def get_value(self, key):
-        # apparently QSettings falls back to System scope here?
-        v = self._settings.value(key)
-        if v is None:
-            raise KeyError("key not found")
-        return json.loads(v)
+        return self._qsettings.get_value(key)
 
     def set_value(self, key, value):
-        return self._settings.setValue(key, json.dumps(value))
+        return self._qsettings.set_value(key, value)
 
     def del_value(self, key):
-        return self._settings.remove(key)
+        return self._qsettings.del_value(key)
 
     def get_keys(self):
-        for k in self._settings.allKeys():
-            yield k
+        return self._qsettings.get_keys()
 
     def clear(self):
-        # Qt: the empty string removes all entries in the current group
-        self._settings.remove("")
+        return self._qsettings.clear()
 
 
 def get_current_directory_config_path():
@@ -392,31 +404,26 @@ def get_current_directory_config_path():
 
 
 class DirectoryIDASettings(IDASettingsBase, DictMixin):
-    @property
-    def _settings(self):
+    def __init__(self, plugin_name, *args, **kwargs):
+        super(DirectoryIDASettings, self).__init__(plugin_name, *args, **kwargs)
         s = QtCore.QSettings(get_current_directory_config_path(), QtCore.QSettings.IniFormat)
         s.beginGroup(self._plugin_name)
-        return s
+        self._qsettings = QSettingsIDASettings(s)
 
     def get_value(self, key):
-        v = self._settings.value(key)
-        if v is None:
-            raise KeyError("key not found")
-        return json.loads(v)
+        return self._qsettings.get_value(key)
 
     def set_value(self, key, value):
-        return self._settings.setValue(key, json.dumps(value))
+        return self._qsettings.set_value(key, value)
 
     def del_value(self, key):
-        return self._settings.remove(key)
+        return self._qsettings.del_value(key)
 
     def get_keys(self):
-        for k in self._settings.allKeys():
-            yield k
+        return self._qsettings.get_keys()
 
     def clear(self):
-        # Qt: the empty string removes all entries in the current group
-        self._settings.remove("")
+        return self._qsettings.clear()
 
 
 def get_meta_netnode():
