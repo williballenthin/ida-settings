@@ -296,9 +296,9 @@ def has_qsettings_write_permission(settings):
     settings.sync()
     # there's a race here, if another thread/process also
     # performs the same check at the same time
-    if settings.status != QtCore.QSettings.NoError:
+    if settings.status() != QtCore.QSettings.NoError:
         return False
-    if settings.value(MARKER_KEY) != v:
+    if settings.value(MARKER_KEY) != value:
         return False
     settings.remove(MARKER_KEY)
     settings.sync()
