@@ -305,6 +305,11 @@ def has_qsettings_write_permission(settings):
     return True
 
 
+class PermissionError(IOError):
+    def __init__(self):
+        super(PermissionError, self).__init__("Unable to write to QSettings")
+
+
 class SystemIDASettings(IDASettingsBase, DictMixin):
     def __init__(self, *args, **kwargs):
         super(SystemIDASettings, self).__init__(*args, **kwargs)
@@ -314,7 +319,7 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
         if self._has_perms is None:
             self._has_perms = has_qsettings_write_permission(self._settings)
         if not self._has_perms:
-            raise IOError("unable to write to QSettings")
+            raise PermissionError()
     
     @property
     def _settings(self):
@@ -573,6 +578,9 @@ def classproperty(func):
         func = classmethod(func)
 
     return ClassPropertyDescriptor(func)
+
+
+    
 
 
 def ensure_ida_loaded():
