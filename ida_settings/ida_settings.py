@@ -96,6 +96,7 @@ import re
 import sys
 import abc
 import json
+import datetime
 import unittest
 import contextlib
 
@@ -288,7 +289,33 @@ class DictMixin:
         return [(k, v) for k, v in self.iteritems()]
 
 
+MARKER_KEY = "__meta/permission_check"
+def has_qsettings_write_permission(settings):
+    value = datetime.datetime.now().isoformat("T")
+    settings.setValue(MARKER_KEY, value)
+    settings.sync()
+    # there's a race here, if another thread/process also
+    # performs the same check at the same time
+    if settings.status != QtCore.QSettings.NoError:
+        return False
+    if settings.value(MARKER_KEY) != v:
+        return False
+    settings.remove(MARKER_KEY)
+    settings.sync()
+    return True
+
+
 class SystemIDASettings(IDASettingsBase, DictMixin):
+    def __init__(self, *args, **kwargs):
+        super(SystemIDASettings, self).__init__(*args, **kwargs)
+        self._has_perms = None
+
+    def _check_perms(self):
+        if self._has_perms is None:
+            self._has_perms = has_qsettings_write_permission(self._settings)
+        if not self._has_perms:
+            raise IOError("unable to write to QSettings")
+    
     @property
     def _settings(self):
         s = QtCore.QSettings(QtCore.QSettings.SystemScope,
@@ -304,9 +331,11 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
         return json.loads(v)
 
     def set_value(self, key, value):
-        return self._settings.setValue(key, json.dumps(value))
+        self._check_perms()
+        self._settings.setValue(key, json.dumps(value))
 
     def del_value(self, key):
+        self._check_perms()
         return self._settings.remove(key)
 
     def get_keys(self):
@@ -314,6 +343,7 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
             yield k
 
     def clear(self):
+        self._check_perms()
         # Qt: the empty string removes all entries in the current group
         self._settings.remove("")
 
