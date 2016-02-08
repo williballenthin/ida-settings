@@ -310,7 +310,11 @@ class PermissionError(IOError):
         super(PermissionError, self).__init__("Unable to write to QSettings")
 
 
-class QSettingsIDASettings(object):
+class QSettingsIDASettings(IDASettingsInterface):
+    """
+    An IDASettings implementation that uses an existing QSettings
+     instance to persist the keys and values.
+    """
     def __init__(self, qsettings):
         super(QSettingsIDASettings, self).__init__()
         self._settings = qsettings
@@ -347,6 +351,10 @@ class QSettingsIDASettings(object):
 
 
 class SystemIDASettings(IDASettingsBase, DictMixin):
+    """
+    An IDASettings implementation that persists keys and values in the
+     system scope using a QSettings instance.
+    """
     def __init__(self, plugin_name, *args, **kwargs):
         super(SystemIDASettings, self).__init__(plugin_name, *args, **kwargs)
         s = QtCore.QSettings(QtCore.QSettings.SystemScope,
@@ -372,6 +380,10 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
 
 
 class UserIDASettings(IDASettingsBase, DictMixin):
+    """
+    An IDASettings implementation that persists keys and values in the
+     user scope using a QSettings instance.
+    """
     def __init__(self, plugin_name, *args, **kwargs):
         super(UserIDASettings, self).__init__(plugin_name, *args, **kwargs)
         s = QtCore.QSettings(QtCore.QSettings.UserScope,
@@ -404,6 +416,10 @@ def get_current_directory_config_path():
 
 
 class DirectoryIDASettings(IDASettingsBase, DictMixin):
+    """
+    An IDASettings implementation that persists keys and values in the
+     directory scope using a QSettings instance.
+    """
     def __init__(self, plugin_name, *args, **kwargs):
         super(DirectoryIDASettings, self).__init__(plugin_name, *args, **kwargs)
         s = QtCore.QSettings(get_current_directory_config_path(), QtCore.QSettings.IniFormat)
@@ -493,6 +509,10 @@ def del_netnode_plugin_name(plugin_name):
 
 
 class IDBIDASettings(IDASettingsBase, DictMixin):
+    """
+    An IDASettings implementation that persists keys and values in the
+     current IDB database.
+    """
     @property
     def _netnode(self):
         node_name = "$ {org:s}.{application:s}.{plugin_name:s}".format(
