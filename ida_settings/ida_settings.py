@@ -673,6 +673,57 @@ class IDASettings(object):
 
         raise KeyError("key not found")
 
+    def iterkeys(self):
+        visited_keys = set()
+        try:
+            for key in self.idb.iterkeys():
+                if key not in visited_keys:
+                    yield key
+                    visited_keys.add(key)
+        except (PermissionError, EnvironmentError):
+            pass
+
+        try:
+            for key in self.directory.iterkeys():
+                if key not in visited_keys:
+                    yield key
+                    visited_keys.add(key)
+        except (PermissionError, EnvironmentError):
+            pass
+
+        try:
+            for key in self.user.iterkeys():
+                if key not in visited_keys:
+                    yield key
+                    visited_keys.add(key)
+        except (PermissionError, EnvironmentError):
+            pass
+
+        try:
+            for key in self.system.iterkeys():
+                if key not in visited_keys:
+                    yield key
+                    visited_keys.add(key)
+        except (PermissionError, EnvironmentError):
+            pass
+
+    def keys(self):
+        return list(self.iterkeys())
+
+    def itervalues(self):
+        for key in self.iterkeys():
+            yield self[key]
+
+    def values(self):
+        return list(self.itervalues())
+
+    def iteritems(self):
+        for key in self.iterkeys():
+            yield (key, self[key])
+
+    def items(self):
+        return list(self.iteritems())
+
     def __getitem__(self, key):
         return self.get_value(key)
 
