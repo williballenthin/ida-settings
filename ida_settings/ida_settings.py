@@ -50,7 +50,7 @@ Generally, treat a settings instance like a dictionary. For example:
     settings.user.values()     --> ["high"]
     settings.user.items()      --> [("verbosity", "high')]
 
-The value of a particular settings entry must be a small, JSON-encodable
+The value of a particular settings entry must be a JSON-encodable
 value. For example, these are fine:
 
     settings = IDASettings("MSDN-doc")
@@ -60,10 +60,9 @@ value. For example, these are fine:
     settings.user["filenames"] = ["a.txt", "b.txt"]
     settings.user["aliases"] = {"bp": "breakpoint", "g": "go"}
 
-and these are not:
+and this is not:
 
     settings.user["object"] = hashlib.md5()      # this is not JSON-encodable
-    settings.user["buf"] = "\x90" * 4096 * 1024  # this is not small
 
 To export the current effective settings, use the `export_settings`
 function. For example:
@@ -80,10 +79,10 @@ the open IDB, use the `import_settings` function. For example:
 Enumerate the plugin names for the various levels using the
 IDASettings class properties:
 
-    IDASettings.system_plugin_names     --> ["plugin-1", "plugin-2"]
-    IDASettings.user_plugin_names       --> ["plugin-3", "plugin-4"]
-    IDASettings.directory_plugin_names  --> ["plugin-5", "plugin-6"]
-    IDASettings.idb_plugin_names        --> ["plugin-7", "plugin-8"]
+    IDASettings.get_system_plugin_names()     --> ["plugin-1", "plugin-2"]
+    IDASettings.get_user_plugin_names()       --> ["plugin-3", "plugin-4"]
+    IDASettings.get_directory_plugin_names()  --> ["plugin-5", "plugin-6"]
+    IDASettings.get_idb_plugin_names()        --> ["plugin-7", "plugin-8"]
 
 This module is a single file that you can include in IDAPython
 plugin module or scripts.
@@ -545,10 +544,6 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         return json.loads(v)
 
     def set_value(self, key, value):
-        """
-        The IDB netnode API only supports values up to 1024 bytes long,
-         so set_value raises ValueError if the provided value is too big.
-        """
         if not isinstance(key, basestring):
             raise TypeError("key must be a string")
 
@@ -592,24 +587,56 @@ class IDASettings(object):
 
     @property
     def idb(self):
+        """
+        Fetch the IDASettings instance for the curren plugin with IDB scope.
+        
+        rtype: IDASettingsInterface
+        """
         ensure_ida_loaded()
         return IDBIDASettings(self._plugin_name)
 
     @property
     def directory(self):
+        """
+        Fetch the IDASettings instance for the curren plugin with directory scope.
+        
+        rtype: IDASettingsInterface
+        """
         if self._config_directory is None:
             ensure_ida_loaded()
         return DirectoryIDASettings(self._plugin_name, directory=self._config_directory)
 
     @property
     def user(self):
+        """
+        Fetch the IDASettings instance for the curren plugin with user scope.
+        
+        rtype: IDASettingsInterface
+        """
         return UserIDASettings(self._plugin_name)
 
     @property
     def system(self):
+        """
+        Fetch the IDASettings instance for the curren plugin with system scope.
+        
+        rtype: IDASettingsInterface
+        """
         return SystemIDASettings(self._plugin_name)
 
     def get_value(self, key):
+        """
+        Fetch the settings value with the highest precedence for the given
+         key, or raise KeyError.
+        Precedence:
+          - IDB scope
+          - directory scope
+          - user scope
+          - system scope
+
+        type key: basestring
+        rtype value: Union[basestring, int, float, List, Dict]
+        """
         try:
             return self.idb.get_value(key)
         except (KeyError, EnvironmentError):
@@ -630,6 +657,11 @@ class IDASettings(object):
         raise KeyError("key not found")
 
     def iterkeys(self):
+        """
+        Enumerate the keys found at any scope for the current plugin.
+        
+        rtype: Generator[str]
+        """
         visited_keys = set()
         try:
             for key in self.idb.iterkeys():
@@ -664,20 +696,48 @@ class IDASettings(object):
             pass
 
     def keys(self):
+        """
+        Enumerate the keys found at any scope for the current plugin.
+        
+        rtype: Generator[str]
+        """
+
         return list(self.iterkeys())
 
     def itervalues(self):
+        """
+        Enumerate the values found at any scope for the current plugin.
+        
+        rtype: Generator[jsonable]
+        """
+
         for key in self.iterkeys():
             yield self[key]
 
     def values(self):
+        """
+        Enumerate the values found at any scope for the current plugin.
+        
+        rtype: Sequence[jsonable]
+        """
+
         return list(self.itervalues())
 
     def iteritems(self):
+        """
+        Enumerate the (key, value) pairs found at any scope for the current plugin.
+        
+        rtype: Sequence[Tuple[str, jsonable]]
+        """
         for key in self.iterkeys():
             yield (key, self[key])
 
     def items(self):
+        """
+        Enumerate the (key, value) pairs found at any scope for the current plugin.
+        
+        rtype: Sequence[Tuple[str, jsonable]]
+        """
         return list(self.iteritems())
 
     def __getitem__(self, key):
@@ -699,38 +759,97 @@ class IDASettings(object):
 
     @staticmethod
     def get_system_plugin_names():
+        """
+        Get the names of all plugins at the system scope.
+        As this is a static method, you can call the directly on IDASettings:
+
+            import ida_settings
+            print( ida_settings.IDASettings.get_system_plugin_names() )
+        
+        rtype: Sequence[str]
+        """
         return QtCore.QSettings(QtCore.QSettings.SystemScope,
                                 IDA_SETTINGS_ORGANIZATION,
                                 IDA_SETTINGS_APPLICATION).childGroups()[:]
 
     @staticmethod
     def get_user_plugin_names():
+        """
+        Get the names of all plugins at the user scope.
+        As this is a static method, you can call the directly on IDASettings:
+
+            import ida_settings
+            print( ida_settings.IDASettings.get_user_plugin_names() )
+        
+        rtype: Sequence[str]
+        """
         return QtCore.QSettings(QtCore.QSettings.UserScope,
                                 IDA_SETTINGS_ORGANIZATION,
                                 IDA_SETTINGS_APPLICATION).childGroups()[:]
 
     @staticmethod
     def get_directory_plugin_names(config_directory=None):
+        """
+        Get the names of all plugins at the directory scope.
+        Provide a config directory path to use this method outside of IDA.
+        As this is a static method, you can call the directly on IDASettings:
+
+            import ida_settings
+            print( ida_settings.IDASettings.get_directory_plugin_names("/tmp/ida/1/") )
+        
+        type config_directory: str
+        rtype: Sequence[str]
+        """
         ensure_ida_loaded()
         return QtCore.QSettings(get_directory_config_path(directory=config_directory),
                                 QtCore.QSettings.IniFormat).childGroups()[:]
 
     @staticmethod
     def get_idb_plugin_names():
+        """
+        Get the names of all plugins at the IDB scope.
+        Cannot be used outside of IDA.
+        As this is a static method, you can call the directly on IDASettings:
+
+            import ida_settings
+            print( ida_settings.IDASettings.get_idb_plugin_names() )
+        
+        rtype: Sequence[str]
+        """
         ensure_ida_loaded()
         return get_netnode_plugin_names()
 
 
 def import_settings(settings, config_path):
+    """
+    Import settings from the given file system path to given settings instance.
+    
+    type settings: IDASettingsInterface
+    type config_path: str
+    """
     other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
     for k in other.allKeys():
         settings[k] = other.value(k)
 
 
 def export_settings(settings, config_path):
+    """
+    Export the given settings instance to the given file system path.
+    
+    type settings: IDASettingsInterface
+    type config_path: str
+    """
     other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
     for k, v in settings.iteritems():
         other.setValue(k, v)
+
+
+#######################################################################################
+#
+# Test Cases
+#  run this file as an IDAPython script to invoke the tests.
+#
+#######################################################################################
 
 
 PLUGIN_1 = "plugin1"
@@ -866,9 +985,6 @@ class TestSettingsMixin(object):
                 self.assertEqual(self.settings.get_value(KEY_1), large_value_2)
         except PermissionError:
             g_logger.warn("swallowing PermissionError during testing")
-
-
-        
 
 
 class TestSystemSettings(unittest.TestCase, TestSettingsMixin):

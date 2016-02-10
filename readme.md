@@ -49,7 +49,7 @@ Generally, treat a settings instance like a dictionary. For example:
     settings.user.values()     --> ["high"]
     settings.user.items()      --> [("verbosity", "high')]
 
-The value of a particular settings entry must be a small, JSON-encodable
+The value of a particular settings entry must be a JSON-encodable
 value. For example, these are fine:
 
     settings = IDASettings("MSDN-doc")
@@ -59,10 +59,9 @@ value. For example, these are fine:
     settings.user["filenames"] = ["a.txt", "b.txt"]
     settings.user["aliases"] = {"bp": "breakpoint", "g": "go"}
 
-and these are not:
+and this is not:
 
     settings.user["object"] = hashlib.md5()      # this is not JSON-encodable
-    settings.user["buf"] = "\x90" * 4096 * 1024  # this is not small
 
 To export the current effective settings, use the `export_settings`
 function. For example:
@@ -79,10 +78,10 @@ the open IDB, use the `import_settings` function. For example:
 Enumerate the plugin names for the various levels using the
 IDASettings class properties:
 
-    IDASettings.system_plugin_names     --> ["plugin-1", "plugin-2"]
-    IDASettings.user_plugin_names       --> ["plugin-3", "plugin-4"]
-    IDASettings.directory_plugin_names  --> ["plugin-5", "plugin-6"]
-    IDASettings.idb_plugin_names        --> ["plugin-7", "plugin-8"]
+    IDASettings.get_system_plugin_names()     --> ["plugin-1", "plugin-2"]
+    IDASettings.get_user_plugin_names()       --> ["plugin-3", "plugin-4"]
+    IDASettings.get_directory_plugin_names()  --> ["plugin-5", "plugin-6"]
+    IDASettings.get_idb_plugin_names()        --> ["plugin-7", "plugin-8"]
 
 This module is a single file that you can include in IDAPython
 plugin module or scripts.
