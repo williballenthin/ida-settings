@@ -552,10 +552,7 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         if not isinstance(key, basestring):
             raise TypeError("key must be a string")
 
-        v = json.dumps(value)
-        if len(v) >= 1024:
-            raise ValueError("value too large")
-        self._netnode[key] = v
+        self._netnode[key] = json.dumps(value)
         add_netnode_plugin_name(self._plugin_name)
 
     def del_value(self, key):
@@ -893,6 +890,23 @@ class TestSettingsMixin(object):
                     self.assertEquals(self.settings[KEY_1], v)
         except PermissionError:
             g_logger.warn("swallowing PermissionError during testing")
+
+    def test_large_values(self):
+        large_value_1 = "".join(VALUE_1 * 1000)
+        large_value_2 = "".join(VALUE_2 * 1000)
+        try:
+            with clearing(self.settings):
+                # simple set
+                self.settings.set_value(KEY_1, large_value_1)
+                self.assertEqual(self.settings.get_value(KEY_1), large_value_1)
+                # overwrite
+                self.settings.set_value(KEY_1, large_value_2)
+                self.assertEqual(self.settings.get_value(KEY_1), large_value_2)
+        except PermissionError:
+            g_logger.warn("swallowing PermissionError during testing")
+
+
+        
 
 
 class TestSystemSettings(unittest.TestCase, TestSettingsMixin):
