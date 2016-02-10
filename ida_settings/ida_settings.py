@@ -100,6 +100,7 @@ import re
 import sys
 import abc
 import json
+import logging
 import datetime
 import unittest
 import contextlib
@@ -168,6 +169,8 @@ QtCore = import_qtcore()
 
 IDA_SETTINGS_ORGANIZATION = "IDAPython"
 IDA_SETTINGS_APPLICATION = "IDA-Settings"
+
+g_logger = logging.getLogger("ida-settings")
 
 
 # enforce methods required by settings providers
@@ -736,26 +739,26 @@ class IDASettings(object):
         except KeyError:
             return False
 
-    @classproperty
-    def system_plugin_names(self):
+    @staticmethod
+    def get_system_plugin_names():
         return QtCore.QSettings(QtCore.QSettings.SystemScope,
                                 IDA_SETTINGS_ORGANIZATION,
                                 IDA_SETTINGS_APPLICATION).childGroups()[:]
 
-    @classproperty
-    def user_plugin_names(self):
+    @staticmethod
+    def get_user_plugin_names():
         return QtCore.QSettings(QtCore.QSettings.UserScope,
                                 IDA_SETTINGS_ORGANIZATION,
                                 IDA_SETTINGS_APPLICATION).childGroups()[:]
 
-    @classproperty
-    def directory_plugin_names(self):
+    @staticmethod
+    def get_directory_plugin_names(config_directory=None):
         ensure_ida_loaded()
-        return QtCore.QSettings(get_directory_config_path(directory=self._config_directory),
+        return QtCore.QSettings(get_directory_config_path(directory=config_directory),
                                 QtCore.QSettings.IniFormat).childGroups()[:]
 
-    @classproperty
-    def idb_plugin_names(self):
+    @staticmethod
+    def get_idb_plugin_names():
         ensure_ida_loaded()
         return get_netnode_plugin_names()
 
@@ -790,21 +793,33 @@ class TestSync(unittest.TestCase):
     """
 
     def test_system(self):
-        # this may fail if the user is not running as admin
-        IDASettings(PLUGIN_1).system.set_value(KEY_1, VALUE_1)
-        self.assertEqual(IDASettings(PLUGIN_1).system.get_value(KEY_1), VALUE_1)
+        try:
+            # this may fail if the user is not running as admin
+            IDASettings(PLUGIN_1).system.set_value(KEY_1, VALUE_1)
+            self.assertEqual(IDASettings(PLUGIN_1).system.get_value(KEY_1), VALUE_1)
+        except PermissionError:
+            g_logger.warn("swallowing PermissionError during testing")
 
     def test_user(self):
-        IDASettings(PLUGIN_1).user.set_value(KEY_1, VALUE_1)
-        self.assertEqual(IDASettings(PLUGIN_1).user.get_value(KEY_1), VALUE_1)
+        try:
+            IDASettings(PLUGIN_1).user.set_value(KEY_1, VALUE_1)
+            self.assertEqual(IDASettings(PLUGIN_1).user.get_value(KEY_1), VALUE_1)
+        except PermissionError:
+            g_logger.warn("swallowing PermissionError during testing")
 
     def test_directory(self):
-        IDASettings(PLUGIN_1).directory.set_value(KEY_1, VALUE_1)
-        self.assertEqual(IDASettings(PLUGIN_1).directory.get_value(KEY_1), VALUE_1)
+        try:
+            IDASettings(PLUGIN_1).directory.set_value(KEY_1, VALUE_1)
+            self.assertEqual(IDASettings(PLUGIN_1).directory.get_value(KEY_1), VALUE_1)
+        except PermissionError:
+            g_logger.warn("swallowing PermissionError during testing")
 
     def test_idb(self):
-        IDASettings(PLUGIN_1).idb.set_value(KEY_1, VALUE_1)
-        self.assertEqual(IDASettings(PLUGIN_1).idb.get_value(KEY_1), VALUE_1)
+        try:
+            IDASettings(PLUGIN_1).idb.set_value(KEY_1, VALUE_1)
+            self.assertEqual(IDASettings(PLUGIN_1).idb.get_value(KEY_1), VALUE_1)
+        except PermissionError:
+            g_logger.warn("swallowing PermissionError during testing")
 
 
 @contextlib.contextmanager
