@@ -574,44 +574,6 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         del_netnode_plugin_name(self._plugin_name)
 
 
-class ClassPropertyDescriptor(object):
-    """
-    Supports class properties.
-    """
-
-    def __init__(self, fget, fset=None):
-        self.fget = fget
-        self.fset = fset
-
-    def __get__(self, obj, klass=None):
-        if klass is None:
-            klass = type(obj)
-        return self.fget.__get__(obj, klass)()
-
-    def __set__(self, obj, value):
-        if not self.fset:
-            raise AttributeError("can't set attribute")
-        type_ = type(obj)
-        return self.fset.__get__(obj, type_)(value)
-
-    def setter(self, func):
-        if not isinstance(func, (classmethod, staticmethod)):
-            func = classmethod(func)
-        self.fset = func
-        return self
-
-
-def classproperty(func):
-    """
-    Decorator that denotes a class property (as opposed to an instance property).
-    via: http://stackoverflow.com/a/5191224/87207
-    """
-    if not isinstance(func, (classmethod, staticmethod)):
-        func = classmethod(func)
-
-    return ClassPropertyDescriptor(func)
-
-
 def ensure_ida_loaded():
     try:
         import idc
