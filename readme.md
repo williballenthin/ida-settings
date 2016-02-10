@@ -85,8 +85,11 @@ IDASettings class properties:
     IDASettings.idb_plugin_names        --> ["plugin-7", "plugin-8"]
 
 This module is a single file that you can include in IDAPython
-plugin module or scripts. It is licensed under the Apache 2.0
-license.
+plugin module or scripts.
+
+It depends on ida-netnode, which you can download here: 
+https://github.com/williballenthin/ida-netnode
+
+This project is licensed under the Apache 2.0 license.
 
 Author: Willi Ballenthin <william.ballenthin@fireeye.com>
-

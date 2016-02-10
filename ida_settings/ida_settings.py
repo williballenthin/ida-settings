@@ -86,8 +86,12 @@ IDASettings class properties:
     IDASettings.idb_plugin_names        --> ["plugin-7", "plugin-8"]
 
 This module is a single file that you can include in IDAPython
-plugin module or scripts. It is licensed under the Apache 2.0
-license.
+plugin module or scripts.
+
+It depends on ida-netnode, which you can download here: 
+https://github.com/williballenthin/ida-netnode
+
+This project is licensed under the Apache 2.0 license.
 
 Author: Willi Ballenthin <william.ballenthin@fireeye.com>
 """
@@ -100,10 +104,10 @@ import datetime
 import unittest
 import contextlib
 
-
 try:
     import idc
     import idaapi
+    import netnode
 except ImportError:
     pass
 
@@ -450,8 +454,7 @@ def get_meta_netnode():
     node_name = "$ {org:s}.{application:s}".format(
         org=IDA_SETTINGS_ORGANIZATION,
         application=IDA_SETTINGS_APPLICATION)
-    # namelen: 0, do_create: True
-    return idaapi.netnode(node_name, 0, True)
+    return netnode.Netnode(node_name)
 
 
 PLUGIN_NAMES_KEY = "plugin_names"
@@ -462,15 +465,11 @@ def get_netnode_plugin_names():
     Get a iterable of the plugin names registered in the current IDB.
     Note that this implicitly uses the open IDB via the idc iterface.
     """
-    n = get_meta_netnode()
-
     try:
-        v = n.hashval(PLUGIN_NAMES_KEY)
-    except TypeError:
+        return json.loads(get_meta_netnode()[PLUGIN_NAMES_KEY])
+    except KeyError:
+        # TODO: there may be other exception types to catch here
         return []
-    if v is None:
-        return []
-    return json.loads(v)
 
 
 def add_netnode_plugin_name(plugin_name):
@@ -485,8 +484,7 @@ def add_netnode_plugin_name(plugin_name):
 
     current_names.add(plugin_name)
 
-    n = get_meta_netnode()
-    n.hashset(PLUGIN_NAMES_KEY, json.dumps(list(current_names)))
+    get_meta_netnode()[PLUGIN_NAMES_KEY] = json.dumps(list(current_names))
 
 
 def del_netnode_plugin_name(plugin_name):
@@ -504,8 +502,7 @@ def del_netnode_plugin_name(plugin_name):
     except KeyError:
         return
 
-    n = get_meta_netnode()
-    n.hashset(PLUGIN_NAMES_KEY, json.dumps(list(current_names)))
+    get_meta_netnode()[PLUGIN_NAMES_KEY] = json.dumps(list(current_names))
 
 
 class IDBIDASettings(IDASettingsBase, DictMixin):
@@ -519,16 +516,14 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
             org=IDA_SETTINGS_ORGANIZATION,
             application=IDA_SETTINGS_APPLICATION,
             plugin_name=self._plugin_name)
-        # namelen: 0, do_create: True
-        n = idaapi.netnode(node_name, 0, True)
-        return n
+        return netnode.Netnode(node_name)
 
     def get_value(self, key):
         if not isinstance(key, basestring):
             raise TypeError("key must be a string")
 
         try:
-            v = self._netnode.hashval(key)
+            v = self._netnode[key]
         except TypeError:
             raise KeyError("key not found")
         if v is None:
@@ -547,21 +542,20 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         v = json.dumps(value)
         if len(v) >= 1024:
             raise ValueError("value too large")
-        self._netnode.hashset(key, v)
+        self._netnode[key] = v
         add_netnode_plugin_name(self._plugin_name)
 
     def del_value(self, key):
         if not isinstance(key, basestring):
             raise TypeError("key must be a string")
 
-        self._netnode.hashdel(key)
-        self._netnode.hashset(key, None)
+        try:
+            del self._netnode[key]
+        except KeyError:
+            pass
 
     def get_keys(self):
-        k = self._netnode.hash1st()
-        while k != idaapi.BADNODE and k is not None:
-            yield k
-            k = self._netnode.hashnxt(k)
+        return self._netnode.iterkeys()
 
     def clear(self):
         for k in self.get_keys():
@@ -605,9 +599,6 @@ def classproperty(func):
         func = classmethod(func)
 
     return ClassPropertyDescriptor(func)
-
-
-    
 
 
 def ensure_ida_loaded():
