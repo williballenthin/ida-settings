@@ -104,6 +104,8 @@ import datetime
 import unittest
 import contextlib
 
+CONFIG_FILE_NANE = ".ida-settings.ini"
+
 try:
     import idc
     import idaapi
@@ -152,7 +154,7 @@ def import_qtcore():
             return QtCore
         except ImportError:
             pass
-        
+
         try:
             from PySide import QtCore
             return QtCore
@@ -161,8 +163,8 @@ def import_qtcore():
 
         raise ImportError("No module named PySide or PyQt")
 
+
 QtCore = import_qtcore()
-    
 
 IDA_SETTINGS_ORGANIZATION = "IDAPython"
 IDA_SETTINGS_APPLICATION = "IDA-Settings"
@@ -294,6 +296,8 @@ class DictMixin:
 
 
 MARKER_KEY = "__meta/permission_check"
+
+
 def has_qsettings_write_permission(settings):
     value = datetime.datetime.now().isoformat("T")
     settings.setValue(MARKER_KEY, value)
@@ -319,6 +323,7 @@ class QSettingsIDASettings(IDASettingsInterface):
     An IDASettings implementation that uses an existing QSettings
      instance to persist the keys and values.
     """
+
     def __init__(self, qsettings):
         super(QSettingsIDASettings, self).__init__()
         self._settings = qsettings
@@ -329,7 +334,7 @@ class QSettingsIDASettings(IDASettingsInterface):
             self._has_perms = has_qsettings_write_permission(self._settings)
         if not self._has_perms:
             raise PermissionError()
-    
+
     def get_value(self, key):
         v = self._settings.value(key)
         if v is None:
@@ -359,6 +364,7 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
     An IDASettings implementation that persists keys and values in the
      system scope using a QSettings instance.
     """
+
     def __init__(self, plugin_name, *args, **kwargs):
         super(SystemIDASettings, self).__init__(plugin_name, *args, **kwargs)
         s = QtCore.QSettings(QtCore.QSettings.SystemScope,
@@ -388,6 +394,7 @@ class UserIDASettings(IDASettingsBase, DictMixin):
     An IDASettings implementation that persists keys and values in the
      user scope using a QSettings instance.
     """
+
     def __init__(self, plugin_name, *args, **kwargs):
         super(UserIDASettings, self).__init__(plugin_name, *args, **kwargs)
         s = QtCore.QSettings(QtCore.QSettings.UserScope,
@@ -412,10 +419,10 @@ class UserIDASettings(IDASettingsBase, DictMixin):
         return self._qsettings.clear()
 
 
-def get_current_directory_config_path():
-    directory = os.path.dirname(idc.GetIdbPath())
-    config_name = ".ida-settings.ini"
-    config_path = os.path.join(directory, config_name)
+def get_directory_config_path(directory=None):
+    if directory is None:
+        directory = os.path.dirname(idc.GetIdbPath())
+    config_path = os.path.join(directory, CONFIG_FILE_NANE)
     return config_path
 
 
@@ -424,9 +431,12 @@ class DirectoryIDASettings(IDASettingsBase, DictMixin):
     An IDASettings implementation that persists keys and values in the
      directory scope using a QSettings instance.
     """
+
     def __init__(self, plugin_name, *args, **kwargs):
+        config_directory = kwargs.pop("directory")
         super(DirectoryIDASettings, self).__init__(plugin_name, *args, **kwargs)
-        s = QtCore.QSettings(get_current_directory_config_path(), QtCore.QSettings.IniFormat)
+        config_path = get_directory_config_path(config_directory)
+        s = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
         s.beginGroup(self._plugin_name)
         self._qsettings = QSettingsIDASettings(s)
 
@@ -510,6 +520,7 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
     An IDASettings implementation that persists keys and values in the
      current IDB database.
     """
+
     @property
     def _netnode(self):
         node_name = "$ {org:s}.{application:s}.{plugin_name:s}".format(
@@ -568,6 +579,7 @@ class ClassPropertyDescriptor(object):
     """
     Supports class properties.
     """
+
     def __init__(self, fget, fset=None):
         self.fget = fget
         self.fset = fset
@@ -587,7 +599,7 @@ class ClassPropertyDescriptor(object):
         if not isinstance(func, (classmethod, staticmethod)):
             func = classmethod(func)
         self.fset = func
-        return self    
+        return self
 
 
 def classproperty(func):
@@ -610,11 +622,12 @@ def ensure_ida_loaded():
 
 
 class IDASettings(object):
-    def __init__(self, plugin_name):
+    def __init__(self, plugin_name, directory=None):
         super(IDASettings, self).__init__()
         if not validate(plugin_name):
             raise RuntimeError("invalid plugin name")
         self._plugin_name = plugin_name
+        self._config_directory = directory
 
     @property
     def idb(self):
@@ -623,8 +636,9 @@ class IDASettings(object):
 
     @property
     def directory(self):
-        ensure_ida_loaded()
-        return DirectoryIDASettings(self._plugin_name)
+        if self._config_directory is None:
+            ensure_ida_loaded()
+        return DirectoryIDASettings(self._plugin_name, directory=self._config_directory)
 
     @property
     def user(self):
@@ -654,6 +668,57 @@ class IDASettings(object):
 
         raise KeyError("key not found")
 
+    def iterkeys(self):
+        visited_keys = set()
+        try:
+            for key in self.idb.iterkeys():
+                if key not in visited_keys:
+                    yield key
+                    visited_keys.add(key)
+        except (PermissionError, EnvironmentError):
+            pass
+
+        try:
+            for key in self.directory.iterkeys():
+                if key not in visited_keys:
+                    yield key
+                    visited_keys.add(key)
+        except (PermissionError, EnvironmentError):
+            pass
+
+        try:
+            for key in self.user.iterkeys():
+                if key not in visited_keys:
+                    yield key
+                    visited_keys.add(key)
+        except (PermissionError, EnvironmentError):
+            pass
+
+        try:
+            for key in self.system.iterkeys():
+                if key not in visited_keys:
+                    yield key
+                    visited_keys.add(key)
+        except (PermissionError, EnvironmentError):
+            pass
+
+    def keys(self):
+        return list(self.iterkeys())
+
+    def itervalues(self):
+        for key in self.iterkeys():
+            yield self[key]
+
+    def values(self):
+        return list(self.itervalues())
+
+    def iteritems(self):
+        for key in self.iterkeys():
+            yield (key, self[key])
+
+    def items(self):
+        return list(self.iteritems())
+
     def __getitem__(self, key):
         return self.get_value(key)
 
@@ -682,11 +747,11 @@ class IDASettings(object):
         return QtCore.QSettings(QtCore.QSettings.UserScope,
                                 IDA_SETTINGS_ORGANIZATION,
                                 IDA_SETTINGS_APPLICATION).childGroups()[:]
- 
+
     @classproperty
     def directory_plugin_names(self):
         ensure_ida_loaded()
-        return QtCore.QSettings(get_current_directory_config_path(),
+        return QtCore.QSettings(get_directory_config_path(directory=self._config_directory),
                                 QtCore.QSettings.IniFormat).childGroups()[:]
 
     @classproperty
@@ -694,14 +759,14 @@ class IDASettings(object):
         ensure_ida_loaded()
         return get_netnode_plugin_names()
 
- 
-def import_settings(settings, path):
+
+def import_settings(settings, config_path):
     other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
     for k in other.allKeys():
         settings[k] = other.value(k)
 
 
-def export_settings(settings, path):
+def export_settings(settings, config_path):
     other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
     for k, v in settings.iteritems():
         other.setValue(k, v)
@@ -723,6 +788,7 @@ class TestSync(unittest.TestCase):
     """
     Demonstrate that creating new instances of the settings objects shows the same data.
     """
+
     def test_system(self):
         # this may fail if the user is not running as admin
         IDASettings(PLUGIN_1).system.set_value(KEY_1, VALUE_1)
@@ -755,6 +821,7 @@ class TestSettingsMixin(object):
     A mixin that adds standard tests test cases with:
       - self.settings, an IDASettingsInterface implementor
     """
+
     def test_set(self):
         with clearing(self.settings):
             # simple set
@@ -919,7 +986,7 @@ class TestPluginNamesAccessors(unittest.TestCase):
 
         self.assertEqual(set(IDASettings.idb_plugin_names), set([]))
 
- 
+
 def main():
     try:
         unittest.main()
