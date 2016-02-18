@@ -92,3 +92,9 @@ https://github.com/williballenthin/ida-netnode
 This project is licensed under the Apache 2.0 license.
 
 Author: Willi Ballenthin <william.ballenthin@fireeye.com>
+
+## settings editor
+
+Run this script `ida_settings/ui/ida_settings_viewer.py` as an IDAPython script to review, modify, and save settings from the system, user, directory, and IDB scopes on a per-plugin basis.
+
+![UI Screenshot](/img/ui.png?raw=true "UI Screenshot")
