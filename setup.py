@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='ida-settings',
-      version="0.3",
+      version="1.0",
       description="Fetch and set configuration values in IDA Pro IDAPython scripts",
       author='Willi Ballenthin',
       author_email='william.ballenthin@fireeye.com',
