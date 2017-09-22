@@ -589,7 +589,7 @@ class IDASettings(object):
     def idb(self):
         """
         Fetch the IDASettings instance for the curren plugin with IDB scope.
-        
+
         rtype: IDASettingsInterface
         """
         ensure_ida_loaded()
@@ -599,7 +599,7 @@ class IDASettings(object):
     def directory(self):
         """
         Fetch the IDASettings instance for the curren plugin with directory scope.
-        
+
         rtype: IDASettingsInterface
         """
         if self._config_directory is None:
@@ -610,7 +610,7 @@ class IDASettings(object):
     def user(self):
         """
         Fetch the IDASettings instance for the curren plugin with user scope.
-        
+
         rtype: IDASettingsInterface
         """
         return UserIDASettings(self._plugin_name)
@@ -619,7 +619,7 @@ class IDASettings(object):
     def system(self):
         """
         Fetch the IDASettings instance for the curren plugin with system scope.
-        
+
         rtype: IDASettingsInterface
         """
         return SystemIDASettings(self._plugin_name)
@@ -659,7 +659,7 @@ class IDASettings(object):
     def iterkeys(self):
         """
         Enumerate the keys found at any scope for the current plugin.
-        
+
         rtype: Generator[str]
         """
         visited_keys = set()
@@ -698,7 +698,7 @@ class IDASettings(object):
     def keys(self):
         """
         Enumerate the keys found at any scope for the current plugin.
-        
+
         rtype: Generator[str]
         """
 
@@ -707,7 +707,7 @@ class IDASettings(object):
     def itervalues(self):
         """
         Enumerate the values found at any scope for the current plugin.
-        
+
         rtype: Generator[jsonable]
         """
 
@@ -717,7 +717,7 @@ class IDASettings(object):
     def values(self):
         """
         Enumerate the values found at any scope for the current plugin.
-        
+
         rtype: Sequence[jsonable]
         """
 
@@ -726,7 +726,7 @@ class IDASettings(object):
     def iteritems(self):
         """
         Enumerate the (key, value) pairs found at any scope for the current plugin.
-        
+
         rtype: Sequence[Tuple[str, jsonable]]
         """
         for key in self.iterkeys():
@@ -735,7 +735,7 @@ class IDASettings(object):
     def items(self):
         """
         Enumerate the (key, value) pairs found at any scope for the current plugin.
-        
+
         rtype: Sequence[Tuple[str, jsonable]]
         """
         return list(self.iteritems())
@@ -765,7 +765,7 @@ class IDASettings(object):
 
             import ida_settings
             print( ida_settings.IDASettings.get_system_plugin_names() )
-        
+
         rtype: Sequence[str]
         """
         return QtCore.QSettings(QtCore.QSettings.SystemScope,
@@ -780,7 +780,7 @@ class IDASettings(object):
 
             import ida_settings
             print( ida_settings.IDASettings.get_user_plugin_names() )
-        
+
         rtype: Sequence[str]
         """
         return QtCore.QSettings(QtCore.QSettings.UserScope,
@@ -796,7 +796,7 @@ class IDASettings(object):
 
             import ida_settings
             print( ida_settings.IDASettings.get_directory_plugin_names("/tmp/ida/1/") )
-        
+
         type config_directory: str
         rtype: Sequence[str]
         """
@@ -813,7 +813,7 @@ class IDASettings(object):
 
             import ida_settings
             print( ida_settings.IDASettings.get_idb_plugin_names() )
-        
+
         rtype: Sequence[str]
         """
         ensure_ida_loaded()
@@ -823,7 +823,7 @@ class IDASettings(object):
 def import_settings(settings, config_path):
     """
     Import settings from the given file system path to given settings instance.
-    
+
     type settings: IDASettingsInterface
     type config_path: str
     """
@@ -835,7 +835,7 @@ def import_settings(settings, config_path):
 def export_settings(settings, config_path):
     """
     Export the given settings instance to the given file system path.
-    
+
     type settings: IDASettingsInterface
     type config_path: str
     """
@@ -1069,19 +1069,19 @@ class TestPluginNamesAccessors(unittest.TestCase):
     def test_system_plugin_names(self):
         try:
             self.assertEqual(set(IDASettings.get_system_plugin_names()),
-                            set([]))
+                             set([]))
 
             s1 = IDASettings(PLUGIN_1).system
             with clearing(s1):
                 s1[KEY_1] = VALUE_1
                 self.assertEqual(set(IDASettings.get_system_plugin_names()),
-                                set([PLUGIN_1]))
+                                 set([PLUGIN_1]))
 
                 s2 = IDASettings(PLUGIN_2).system
                 with clearing(s2):
                     s2[KEY_1] = VALUE_1
                     self.assertEqual(set(IDASettings.get_system_plugin_names()),
-                                    set([PLUGIN_1, PLUGIN_2]))
+                                     set([PLUGIN_1, PLUGIN_2]))
 
             self.assertEqual(set(IDASettings.get_system_plugin_names()), set([]))
         except PermissionError:
@@ -1090,19 +1090,19 @@ class TestPluginNamesAccessors(unittest.TestCase):
     def test_user_plugin_names(self):
         try:
             self.assertEqual(set(IDASettings.get_user_plugin_names()),
-                            set([]))
+                             set([]))
 
             s1 = IDASettings(PLUGIN_1).user
             with clearing(s1):
                 s1[KEY_1] = VALUE_1
                 self.assertEqual(set(IDASettings.get_user_plugin_names()),
-                                set([PLUGIN_1]))
+                                 set([PLUGIN_1]))
 
                 s2 = IDASettings(PLUGIN_2).user
                 with clearing(s2):
                     s2[KEY_1] = VALUE_1
                     self.assertEqual(set(IDASettings.get_user_plugin_names()),
-                                    set([PLUGIN_1, PLUGIN_2]))
+                                     set([PLUGIN_1, PLUGIN_2]))
 
             self.assertEqual(set(IDASettings.get_user_plugin_names()), set([]))
         except PermissionError:
@@ -1111,44 +1111,44 @@ class TestPluginNamesAccessors(unittest.TestCase):
     def test_directory_plugin_names(self):
         try:
             self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                            set([]))
+                             set([]))
 
             s1 = IDASettings(PLUGIN_1).directory
             with clearing(s1):
                 s1[KEY_1] = VALUE_1
                 self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                                set([PLUGIN_1]))
+                                 set([PLUGIN_1]))
 
                 s2 = IDASettings(PLUGIN_2).directory
                 with clearing(s2):
                     s2[KEY_1] = VALUE_1
                     self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                                    set([PLUGIN_1, PLUGIN_2]))
+                                     set([PLUGIN_1, PLUGIN_2]))
 
             self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                            set([]))
+                             set([]))
         except PermissionError:
             g_logger.warn("swallowing PermissionError during testing")
 
     def test_idb_plugin_names(self):
         try:
             self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                            set([]))
+                             set([]))
 
             s1 = IDASettings(PLUGIN_1).idb
             with clearing(s1):
                 s1[KEY_1] = VALUE_1
                 self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                                set([PLUGIN_1]))
+                                 set([PLUGIN_1]))
 
                 s2 = IDASettings(PLUGIN_2).idb
                 with clearing(s2):
                     s2[KEY_1] = VALUE_1
                     self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                                    set([PLUGIN_1, PLUGIN_2]))
+                                     set([PLUGIN_1, PLUGIN_2]))
 
             self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                            set([]))
+                             set([]))
         except PermissionError:
             g_logger.warn("swallowing PermissionError during testing")
 
