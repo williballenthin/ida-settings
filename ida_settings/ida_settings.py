@@ -422,7 +422,7 @@ class UserIDASettings(IDASettingsBase, DictMixin):
 
 def get_directory_config_path(directory=None):
     if directory is None:
-        directory = os.path.dirname(idc.GetIdbPath())
+        directory = os.path.dirname(idc.get_idb_path())
     config_path = os.path.join(directory, CONFIG_FILE_NANE)
     return config_path
 
