@@ -8,7 +8,7 @@ import unittest
 import contextlib
 import logging
 
-from ida_settings import IDASettings, PermissionError
+from .ida_settings import IDASettings, PermissionError
 
 g_logger = logging.getLogger("ida-settings")
 
@@ -113,13 +113,13 @@ class TestSettingsMixin(object):
             with clearing(self.settings):
                 self.assertFalse(KEY_1 in self.settings)
                 self.settings[KEY_1] = VALUE_1
-                self.assertEquals(self.settings[KEY_1], VALUE_1)
+                self.assertEqual(self.settings[KEY_1], VALUE_1)
                 self.settings[KEY_2] = VALUE_2
-                self.assertEquals(self.settings[KEY_2], VALUE_2)
-                self.assertEquals(self.settings.keys(), [KEY_1, KEY_2])
-                self.assertEquals(self.settings.values(), [VALUE_1, VALUE_2])
+                self.assertEqual(self.settings[KEY_2], VALUE_2)
+                self.assertEqual(list(self.settings.keys()), [KEY_1, KEY_2])
+                self.assertEqual(list(self.settings.values()), [VALUE_1, VALUE_2])
                 del self.settings[KEY_1]
-                self.assertEquals(self.settings.keys(), [KEY_2])
+                self.assertEqual(list(self.settings.keys()), [KEY_2])
         except PermissionError:
             g_logger.warn("swallowing PermissionError during testing")
 
@@ -128,7 +128,7 @@ class TestSettingsMixin(object):
             with clearing(self.settings):
                 for v in [VALUE_INT, VALUE_FLOAT, VALUE_LIST, VALUE_DICT]:
                     self.settings.set_value(KEY_1, v)
-                    self.assertEquals(self.settings[KEY_1], v)
+                    self.assertEqual(self.settings[KEY_1], v)
         except PermissionError:
             g_logger.warn("swallowing PermissionError during testing")
 

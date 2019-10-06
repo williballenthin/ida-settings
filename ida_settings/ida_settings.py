@@ -167,9 +167,7 @@ IDA_SETTINGS_APPLICATION = "IDA-Settings"
 
 
 # enforce methods required by settings providers
-class IDASettingsInterface:
-    __metaclass__ = abc.ABCMeta
-
+class IDASettingsInterface(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_value(self, key):
         """
@@ -242,17 +240,17 @@ class IDASettingsBase(IDASettingsInterface):
 # allow IDASettings to look like dicts
 class DictMixin:
     def __getitem__(self, key):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
         return self.get_value(key)
 
     def __setitem__(self, key, value):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
         return self.set_value(key, value)
 
     def __delitem__(self, key):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
         return self.del_value(key)
 
@@ -274,21 +272,21 @@ class DictMixin:
         return self.get_keys()
 
     def keys(self):
-        return [k for k in self.iterkeys()]
+        return [k for k in self.keys()]
 
     def itervalues(self):
-        for k in self.iterkeys():
+        for k in self.keys():
             yield self[k]
 
     def values(self):
-        return [v for v in self.itervalues()]
+        return [v for v in self.values()]
 
     def iteritems(self):
-        for k in self.iterkeys():
+        for k in self.keys():
             yield k, self[k]
 
     def items(self):
-        return [(k, v) for k, v in self.iteritems()]
+        return [(k, v) for k, v in self.items()]
 
 
 MARKER_KEY = "__meta/permission_check"
@@ -526,7 +524,7 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         return netnode.Netnode(node_name)
 
     def get_value(self, key):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
 
         try:
@@ -539,14 +537,14 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         return json.loads(v)
 
     def set_value(self, key, value):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
 
         self._netnode[key] = json.dumps(value)
         add_netnode_plugin_name(self._plugin_name)
 
     def del_value(self, key):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
 
         try:
@@ -555,7 +553,7 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
             pass
 
     def get_keys(self):
-        return self._netnode.iterkeys()
+        return iter(self._netnode.keys())
 
     def clear(self):
         for k in self.get_keys():
@@ -659,7 +657,7 @@ class IDASettings(object):
         """
         visited_keys = set()
         try:
-            for key in self.idb.iterkeys():
+            for key in self.idb.keys():
                 if key not in visited_keys:
                     yield key
                     visited_keys.add(key)
@@ -667,7 +665,7 @@ class IDASettings(object):
             pass
 
         try:
-            for key in self.directory.iterkeys():
+            for key in self.directory.keys():
                 if key not in visited_keys:
                     yield key
                     visited_keys.add(key)
@@ -675,7 +673,7 @@ class IDASettings(object):
             pass
 
         try:
-            for key in self.user.iterkeys():
+            for key in self.user.keys():
                 if key not in visited_keys:
                     yield key
                     visited_keys.add(key)
@@ -683,7 +681,7 @@ class IDASettings(object):
             pass
 
         try:
-            for key in self.system.iterkeys():
+            for key in self.system.keys():
                 if key not in visited_keys:
                     yield key
                     visited_keys.add(key)
@@ -697,7 +695,7 @@ class IDASettings(object):
         rtype: Generator[str]
         """
 
-        return list(self.iterkeys())
+        return list(self.keys())
 
     def itervalues(self):
         """
@@ -706,7 +704,7 @@ class IDASettings(object):
         rtype: Generator[jsonable]
         """
 
-        for key in self.iterkeys():
+        for key in self.keys():
             yield self[key]
 
     def values(self):
@@ -716,7 +714,7 @@ class IDASettings(object):
         rtype: Sequence[jsonable]
         """
 
-        return list(self.itervalues())
+        return list(self.values())
 
     def iteritems(self):
         """
@@ -724,7 +722,7 @@ class IDASettings(object):
 
         rtype: Sequence[Tuple[str, jsonable]]
         """
-        for key in self.iterkeys():
+        for key in self.keys():
             yield (key, self[key])
 
     def items(self):
@@ -733,7 +731,7 @@ class IDASettings(object):
 
         rtype: Sequence[Tuple[str, jsonable]]
         """
-        return list(self.iteritems())
+        return list(self.items())
 
     def __getitem__(self, key):
         return self.get_value(key)
@@ -835,6 +833,6 @@ def export_settings(settings, config_path):
     type config_path: str
     """
     other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
-    for k, v in settings.iteritems():
+    for k, v in settings.items():
         other.setValue(k, v)
 
