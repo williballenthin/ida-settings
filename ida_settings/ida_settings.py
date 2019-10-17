@@ -95,14 +95,10 @@ This project is licensed under the Apache 2.0 license.
 Author: Willi Ballenthin <william.ballenthin@fireeye.com>
 """
 import os
-import re
 import sys
 import abc
 import json
-import logging
 import datetime
-import unittest
-import contextlib
 
 try:
     import idc
@@ -168,13 +164,10 @@ CONFIG_FILE_NANE = ".ida-settings.ini"
 IDA_SETTINGS_ORGANIZATION = "IDAPython"
 IDA_SETTINGS_APPLICATION = "IDA-Settings"
 
-g_logger = logging.getLogger("ida-settings")
 
 
 # enforce methods required by settings providers
-class IDASettingsInterface:
-    __metaclass__ = abc.ABCMeta
-
+class IDASettingsInterface(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_value(self, key):
         """
@@ -247,17 +240,17 @@ class IDASettingsBase(IDASettingsInterface):
 # allow IDASettings to look like dicts
 class DictMixin:
     def __getitem__(self, key):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
         return self.get_value(key)
 
     def __setitem__(self, key, value):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
         return self.set_value(key, value)
 
     def __delitem__(self, key):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
         return self.del_value(key)
 
@@ -279,21 +272,21 @@ class DictMixin:
         return self.get_keys()
 
     def keys(self):
-        return [k for k in self.iterkeys()]
+        return [k for k in self.keys()]
 
     def itervalues(self):
-        for k in self.iterkeys():
+        for k in self.keys():
             yield self[k]
 
     def values(self):
-        return [v for v in self.itervalues()]
+        return [v for v in self.values()]
 
     def iteritems(self):
-        for k in self.iterkeys():
+        for k in self.keys():
             yield k, self[k]
 
     def items(self):
-        return [(k, v) for k, v in self.iteritems()]
+        return [(k, v) for k, v in self.items()]
 
 
 MARKER_KEY = "__meta/permission_check"
@@ -531,7 +524,7 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         return netnode.Netnode(node_name)
 
     def get_value(self, key):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
 
         try:
@@ -544,14 +537,14 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         return json.loads(v)
 
     def set_value(self, key, value):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
 
         self._netnode[key] = json.dumps(value)
         add_netnode_plugin_name(self._plugin_name)
 
     def del_value(self, key):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError("key must be a string")
 
         try:
@@ -560,7 +553,7 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
             pass
 
     def get_keys(self):
-        return self._netnode.iterkeys()
+        return iter(self._netnode.keys())
 
     def clear(self):
         for k in self.get_keys():
@@ -664,7 +657,7 @@ class IDASettings(object):
         """
         visited_keys = set()
         try:
-            for key in self.idb.iterkeys():
+            for key in self.idb.keys():
                 if key not in visited_keys:
                     yield key
                     visited_keys.add(key)
@@ -672,7 +665,7 @@ class IDASettings(object):
             pass
 
         try:
-            for key in self.directory.iterkeys():
+            for key in self.directory.keys():
                 if key not in visited_keys:
                     yield key
                     visited_keys.add(key)
@@ -680,7 +673,7 @@ class IDASettings(object):
             pass
 
         try:
-            for key in self.user.iterkeys():
+            for key in self.user.keys():
                 if key not in visited_keys:
                     yield key
                     visited_keys.add(key)
@@ -688,7 +681,7 @@ class IDASettings(object):
             pass
 
         try:
-            for key in self.system.iterkeys():
+            for key in self.system.keys():
                 if key not in visited_keys:
                     yield key
                     visited_keys.add(key)
@@ -702,7 +695,7 @@ class IDASettings(object):
         rtype: Generator[str]
         """
 
-        return list(self.iterkeys())
+        return list(self.keys())
 
     def itervalues(self):
         """
@@ -711,7 +704,7 @@ class IDASettings(object):
         rtype: Generator[jsonable]
         """
 
-        for key in self.iterkeys():
+        for key in self.keys():
             yield self[key]
 
     def values(self):
@@ -721,7 +714,7 @@ class IDASettings(object):
         rtype: Sequence[jsonable]
         """
 
-        return list(self.itervalues())
+        return list(self.values())
 
     def iteritems(self):
         """
@@ -729,7 +722,7 @@ class IDASettings(object):
 
         rtype: Sequence[Tuple[str, jsonable]]
         """
-        for key in self.iterkeys():
+        for key in self.keys():
             yield (key, self[key])
 
     def items(self):
@@ -738,7 +731,7 @@ class IDASettings(object):
 
         rtype: Sequence[Tuple[str, jsonable]]
         """
-        return list(self.iteritems())
+        return list(self.items())
 
     def __getitem__(self, key):
         return self.get_value(key)
@@ -840,325 +833,6 @@ def export_settings(settings, config_path):
     type config_path: str
     """
     other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
-    for k, v in settings.iteritems():
+    for k, v in settings.items():
         other.setValue(k, v)
 
-
-#######################################################################################
-#
-# Test Cases
-#  run this file as an IDAPython script to invoke the tests.
-#
-#######################################################################################
-
-
-PLUGIN_1 = "plugin1"
-PLUGIN_2 = "plugin2"
-KEY_1 = "key_1"
-KEY_2 = "key_2"
-VALUE_1 = bytes("hello")
-VALUE_2 = bytes("goodbye")
-VALUE_INT = 69
-VALUE_FLOAT = 69.69
-VALUE_LIST = ["a", "b", "c"]
-VALUE_DICT = {"a": 1, "b": "2", "c": 3.0}
-
-
-class TestSync(unittest.TestCase):
-    """
-    Demonstrate that creating new instances of the settings objects shows the same data.
-    """
-
-    def test_system(self):
-        try:
-            # this may fail if the user is not running as admin
-            IDASettings(PLUGIN_1).system.set_value(KEY_1, VALUE_1)
-            self.assertEqual(IDASettings(PLUGIN_1).system.get_value(KEY_1), VALUE_1)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_user(self):
-        try:
-            IDASettings(PLUGIN_1).user.set_value(KEY_1, VALUE_1)
-            self.assertEqual(IDASettings(PLUGIN_1).user.get_value(KEY_1), VALUE_1)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_directory(self):
-        try:
-            IDASettings(PLUGIN_1).directory.set_value(KEY_1, VALUE_1)
-            self.assertEqual(IDASettings(PLUGIN_1).directory.get_value(KEY_1), VALUE_1)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_idb(self):
-        try:
-            IDASettings(PLUGIN_1).idb.set_value(KEY_1, VALUE_1)
-            self.assertEqual(IDASettings(PLUGIN_1).idb.get_value(KEY_1), VALUE_1)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-
-@contextlib.contextmanager
-def clearing(settings):
-    settings.clear()
-    try:
-        yield
-    finally:
-        settings.clear()
-
-
-class TestSettingsMixin(object):
-    """
-    A mixin that adds standard tests test cases with:
-      - self.settings, an IDASettingsInterface implementor
-    """
-
-    def test_set(self):
-        try:
-            with clearing(self.settings):
-                # simple set
-                self.settings.set_value(KEY_1, VALUE_1)
-                self.assertEqual(self.settings.get_value(KEY_1), VALUE_1)
-                # overwrite
-                self.settings.set_value(KEY_1, VALUE_2)
-                self.assertEqual(self.settings.get_value(KEY_1), VALUE_2)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_del(self):
-        try:
-            with clearing(self.settings):
-                self.settings.set_value(KEY_1, VALUE_1)
-                self.settings.del_value(KEY_1)
-                with self.assertRaises(KeyError):
-                    self.settings.get_value(KEY_1)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_keys(self):
-        try:
-            with clearing(self.settings):
-                self.settings.del_value(KEY_1)
-                self.settings.del_value(KEY_2)
-                self.settings.set_value(KEY_1, VALUE_1)
-                self.assertEqual(list(self.settings.get_keys()), [KEY_1])
-                self.settings.set_value(KEY_2, VALUE_2)
-                self.assertEqual(list(self.settings.get_keys()), [KEY_1, KEY_2])
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_dict(self):
-        try:
-            with clearing(self.settings):
-                self.assertFalse(KEY_1 in self.settings)
-                self.settings[KEY_1] = VALUE_1
-                self.assertEquals(self.settings[KEY_1], VALUE_1)
-                self.settings[KEY_2] = VALUE_2
-                self.assertEquals(self.settings[KEY_2], VALUE_2)
-                self.assertEquals(self.settings.keys(), [KEY_1, KEY_2])
-                self.assertEquals(self.settings.values(), [VALUE_1, VALUE_2])
-                del self.settings[KEY_1]
-                self.assertEquals(self.settings.keys(), [KEY_2])
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_types(self):
-        try:
-            with clearing(self.settings):
-                for v in [VALUE_INT, VALUE_FLOAT, VALUE_LIST, VALUE_DICT]:
-                    self.settings.set_value(KEY_1, v)
-                    self.assertEquals(self.settings[KEY_1], v)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_large_values(self):
-        large_value_1 = "".join(VALUE_1 * 1000)
-        large_value_2 = "".join(VALUE_2 * 1000)
-        try:
-            with clearing(self.settings):
-                # simple set
-                self.settings.set_value(KEY_1, large_value_1)
-                self.assertEqual(self.settings.get_value(KEY_1), large_value_1)
-                # overwrite
-                self.settings.set_value(KEY_1, large_value_2)
-                self.assertEqual(self.settings.get_value(KEY_1), large_value_2)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-
-class TestSystemSettings(unittest.TestCase, TestSettingsMixin):
-    def setUp(self):
-        self.settings = IDASettings(PLUGIN_1).system
-
-
-class TestUserSettings(unittest.TestCase, TestSettingsMixin):
-    def setUp(self):
-        self.settings = IDASettings(PLUGIN_1).user
-
-
-class TestDirectorySettings(unittest.TestCase, TestSettingsMixin):
-    def setUp(self):
-        self.settings = IDASettings(PLUGIN_1).directory
-
-
-class TestIdbSettings(unittest.TestCase, TestSettingsMixin):
-    def setUp(self):
-        self.settings = IDASettings(PLUGIN_1).idb
-
-
-class TestUserAndSystemSettings(unittest.TestCase):
-    def setUp(self):
-        self.system = IDASettings(PLUGIN_1).system
-        self.user = IDASettings(PLUGIN_1).user
-
-    def test_system_fallback(self):
-        """
-        QSettings instances with scope "user" automatically fall back to
-         scope "system" if the key doesn't exist.
-        """
-        try:
-            with clearing(self.system):
-                with clearing(self.user):
-                    self.system.set_value(KEY_1, VALUE_1)
-                    self.assertEqual(self.user.get_value(KEY_1), VALUE_1)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-
-class TestSettingsPrecendence(unittest.TestCase):
-    def setUp(self):
-        self.system = IDASettings(PLUGIN_1).system
-        self.user = IDASettings(PLUGIN_1).user
-        self.directory = IDASettings(PLUGIN_1).directory
-        self.idb = IDASettings(PLUGIN_1).idb
-        self.mux = IDASettings(PLUGIN_1)
-
-    def test_user_gt_system(self):
-        try:
-            with clearing(self.system):
-                with clearing(self.user):
-                    self.system.set_value(KEY_1, VALUE_1)
-                    self.user.set_value(KEY_1, VALUE_2)
-                    self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_directory_gt_user(self):
-        try:
-            with clearing(self.user):
-                with clearing(self.directory):
-                    self.user.set_value(KEY_1, VALUE_1)
-                    self.directory.set_value(KEY_1, VALUE_2)
-                    self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_idb_gt_directory(self):
-        try:
-            with clearing(self.directory):
-                with clearing(self.idb):
-                    self.directory.set_value(KEY_1, VALUE_1)
-                    self.idb.set_value(KEY_1, VALUE_2)
-                    self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-
-class TestPluginNamesAccessors(unittest.TestCase):
-    def test_system_plugin_names(self):
-        try:
-            self.assertEqual(set(IDASettings.get_system_plugin_names()),
-                             set([]))
-
-            s1 = IDASettings(PLUGIN_1).system
-            with clearing(s1):
-                s1[KEY_1] = VALUE_1
-                self.assertEqual(set(IDASettings.get_system_plugin_names()),
-                                 set([PLUGIN_1]))
-
-                s2 = IDASettings(PLUGIN_2).system
-                with clearing(s2):
-                    s2[KEY_1] = VALUE_1
-                    self.assertEqual(set(IDASettings.get_system_plugin_names()),
-                                     set([PLUGIN_1, PLUGIN_2]))
-
-            self.assertEqual(set(IDASettings.get_system_plugin_names()), set([]))
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_user_plugin_names(self):
-        try:
-            self.assertEqual(set(IDASettings.get_user_plugin_names()),
-                             set([]))
-
-            s1 = IDASettings(PLUGIN_1).user
-            with clearing(s1):
-                s1[KEY_1] = VALUE_1
-                self.assertEqual(set(IDASettings.get_user_plugin_names()),
-                                 set([PLUGIN_1]))
-
-                s2 = IDASettings(PLUGIN_2).user
-                with clearing(s2):
-                    s2[KEY_1] = VALUE_1
-                    self.assertEqual(set(IDASettings.get_user_plugin_names()),
-                                     set([PLUGIN_1, PLUGIN_2]))
-
-            self.assertEqual(set(IDASettings.get_user_plugin_names()), set([]))
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_directory_plugin_names(self):
-        try:
-            self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                             set([]))
-
-            s1 = IDASettings(PLUGIN_1).directory
-            with clearing(s1):
-                s1[KEY_1] = VALUE_1
-                self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                                 set([PLUGIN_1]))
-
-                s2 = IDASettings(PLUGIN_2).directory
-                with clearing(s2):
-                    s2[KEY_1] = VALUE_1
-                    self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                                     set([PLUGIN_1, PLUGIN_2]))
-
-            self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                             set([]))
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-    def test_idb_plugin_names(self):
-        try:
-            self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                             set([]))
-
-            s1 = IDASettings(PLUGIN_1).idb
-            with clearing(s1):
-                s1[KEY_1] = VALUE_1
-                self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                                 set([PLUGIN_1]))
-
-                s2 = IDASettings(PLUGIN_2).idb
-                with clearing(s2):
-                    s2[KEY_1] = VALUE_1
-                    self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                                     set([PLUGIN_1, PLUGIN_2]))
-
-            self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                             set([]))
-        except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
-
-
-def main():
-    try:
-        unittest.main()
-    except SystemExit:
-        pass
-
-
-if __name__ == "__main__":
-    main()

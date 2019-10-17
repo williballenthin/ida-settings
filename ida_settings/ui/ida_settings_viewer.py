@@ -113,10 +113,10 @@ class IdaSettingsView(QtWidgets.QWidget):
 
         hbox = QtWidgets.QHBoxLayout(self)
         self._key_list = QtWidgets.QListWidget()
-        for scope, keys in (("idb", self._settings.idb.iterkeys()),
-                            ("directory", self._settings.directory.iterkeys()),
-                            ("user", self._settings.user.iterkeys()),
-                            ("system", self._settings.system.iterkeys())):
+        for scope, keys in (("idb", iter(self._settings.idb.keys())),
+                            ("directory", iter(self._settings.directory.keys())),
+                            ("user", iter(self._settings.user.keys())),
+                            ("system", iter(self._settings.system.keys()))):
             for key in keys:
                 self._key_list.addItem("({scope:s}) {key:s}".format(scope=scope, key=key))
 
