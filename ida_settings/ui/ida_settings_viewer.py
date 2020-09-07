@@ -1,17 +1,15 @@
 import json
 
+from PyQt5 import QtGui, QtCore, QtWidgets
 from idaapi import PluginForm
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
 
-import ida_settings 
+import ida_settings
 
 
 class IdaSettingsEditor(PluginForm):
     def OnCreate(self, form):
         # 6.8 and below
-        #self.parent = self.FormToPySideWidget(form)
+        # self.parent = self.FormToPySideWidget(form)
         # 6.9 and above
         self.parent = self.FormToPyQtWidget(form)
         self.PopulateForm()
@@ -48,10 +46,12 @@ class IdaSettingsEditor(PluginForm):
         self._plugin_list = QtWidgets.QListWidget()
 
         plugin_names = set([])
-        for scope, fn in (("idb", ida_settings.IDASettings.get_idb_plugin_names),
-                ("directory", ida_settings.IDASettings.get_directory_plugin_names),
-                ("user", ida_settings.IDASettings.get_user_plugin_names),
-                ("system", ida_settings.IDASettings.get_system_plugin_names)):
+        for scope, fn in (
+            ("idb", ida_settings.IDASettings.get_idb_plugin_names),
+            ("directory", ida_settings.IDASettings.get_directory_plugin_names),
+            ("user", ida_settings.IDASettings.get_user_plugin_names),
+            ("system", ida_settings.IDASettings.get_system_plugin_names),
+        ):
             for plugin_name in fn():
                 plugin_names.add(plugin_name)
         for plugin_name in plugin_names:
@@ -60,7 +60,7 @@ class IdaSettingsEditor(PluginForm):
 
         hbox.addWidget(self._splitter)
         self.parent.setLayout(hbox)
-        
+
         self._plugin_list.currentItemChanged.connect(self._handle_plugin_changed)
 
     def _clear_settings_widgets(self):
@@ -113,10 +113,12 @@ class IdaSettingsView(QtWidgets.QWidget):
 
         hbox = QtWidgets.QHBoxLayout(self)
         self._key_list = QtWidgets.QListWidget()
-        for scope, keys in (("idb", iter(self._settings.idb.keys())),
-                            ("directory", iter(self._settings.directory.keys())),
-                            ("user", iter(self._settings.user.keys())),
-                            ("system", iter(self._settings.system.keys()))):
+        for scope, keys in (
+            ("idb", iter(self._settings.idb.keys())),
+            ("directory", iter(self._settings.directory.keys())),
+            ("user", iter(self._settings.user.keys())),
+            ("system", iter(self._settings.system.keys())),
+        ):
             for key in keys:
                 self._key_list.addItem("({scope:s}) {key:s}".format(scope=scope, key=key))
 
@@ -129,7 +131,7 @@ class IdaSettingsView(QtWidgets.QWidget):
         vbox.addWidget(self._save_button)
 
         hbox.addLayout(vbox)
- 
+
         self._key_list.currentItemChanged.connect(self._handle_key_changed)
         self._save_button.clicked.connect(self._handle_save_value)
 
@@ -137,7 +139,7 @@ class IdaSettingsView(QtWidgets.QWidget):
 
     def _handle_key_changed(self, current, previous):
         if current is None:
-            return 
+            return
 
         self._value_view.clear()
         scope, _, key = str(current.text()).partition(" ")
@@ -152,7 +154,7 @@ class IdaSettingsView(QtWidgets.QWidget):
         v = str(self._value_view.toPlainText())
         s = getattr(self._settings, self._current_scope)
         s[self._current_key] = json.loads(v)
-        
+
 
 def main():
     v = IdaSettingsEditor()

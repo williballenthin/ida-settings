@@ -95,8 +95,8 @@ This project is licensed under the Apache 2.0 license.
 Author: Willi Ballenthin <william.ballenthin@fireeye.com>
 """
 import os
-import sys
 import abc
+import sys
 import json
 import datetime
 
@@ -123,6 +123,7 @@ def import_qtcore():
         # if we're running under IDA,
         # then we'll use IDA's Qt bindings
         import idaapi
+
         has_ida = True
     except ImportError:
         # not running under IDA,
@@ -136,21 +137,25 @@ def import_qtcore():
             sys.path.insert(0, ida_python_path)
             if idaapi.IDA_SDK_VERSION >= 690:
                 from PyQt5 import QtCore
+
                 return QtCore
             else:
                 from PySide import QtCore
+
                 return QtCore
         finally:
             sys.path = old_path
     else:
         try:
             from PyQt5 import QtCore
+
             return QtCore
         except ImportError:
             pass
 
         try:
             from PySide import QtCore
+
             return QtCore
         except ImportError:
             pass
@@ -163,7 +168,6 @@ QtCore = import_qtcore()
 CONFIG_FILE_NANE = ".ida-settings.ini"
 IDA_SETTINGS_ORGANIZATION = "IDAPython"
 IDA_SETTINGS_APPLICATION = "IDA-Settings"
-
 
 
 # enforce methods required by settings providers
@@ -272,17 +276,17 @@ class DictMixin:
         return self.get_keys()
 
     def keys(self):
-        return [k for k in self.keys()]
+        return [k for k in self.iterkeys()]
 
     def itervalues(self):
-        for k in self.keys():
+        for k in self.iterkeys():
             yield self[k]
 
     def values(self):
-        return [v for v in self.values()]
+        return [v for v in self.itervalues()]
 
     def iteritems(self):
-        for k in self.keys():
+        for k in self.iterkeys():
             yield k, self[k]
 
     def items(self):
@@ -336,6 +340,8 @@ class QSettingsIDASettings(IDASettingsInterface):
         return json.loads(v)
 
     def set_value(self, key, value):
+        if isinstance(value, bytes):
+            raise TypeError("value cannot be bytes")
         self._check_perms()
         self._settings.setValue(key, json.dumps(value))
 
@@ -361,9 +367,7 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
 
     def __init__(self, plugin_name, *args, **kwargs):
         super(SystemIDASettings, self).__init__(plugin_name, *args, **kwargs)
-        s = QtCore.QSettings(QtCore.QSettings.SystemScope,
-                             IDA_SETTINGS_ORGANIZATION,
-                             IDA_SETTINGS_APPLICATION)
+        s = QtCore.QSettings(QtCore.QSettings.SystemScope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION)
         s.beginGroup(self._plugin_name)
         self._qsettings = QSettingsIDASettings(s)
 
@@ -371,6 +375,8 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
         return self._qsettings.get_value(key)
 
     def set_value(self, key, value):
+        if isinstance(value, bytes):
+            raise TypeError("value cannot be bytes")
         return self._qsettings.set_value(key, value)
 
     def del_value(self, key):
@@ -391,9 +397,7 @@ class UserIDASettings(IDASettingsBase, DictMixin):
 
     def __init__(self, plugin_name, *args, **kwargs):
         super(UserIDASettings, self).__init__(plugin_name, *args, **kwargs)
-        s = QtCore.QSettings(QtCore.QSettings.UserScope,
-                             IDA_SETTINGS_ORGANIZATION,
-                             IDA_SETTINGS_APPLICATION)
+        s = QtCore.QSettings(QtCore.QSettings.UserScope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION)
         s.beginGroup(self._plugin_name)
         self._qsettings = QSettingsIDASettings(s)
 
@@ -401,6 +405,8 @@ class UserIDASettings(IDASettingsBase, DictMixin):
         return self._qsettings.get_value(key)
 
     def set_value(self, key, value):
+        if isinstance(value, bytes):
+            raise TypeError("value cannot be bytes")
         return self._qsettings.set_value(key, value)
 
     def del_value(self, key):
@@ -438,6 +444,8 @@ class DirectoryIDASettings(IDASettingsBase, DictMixin):
         return self._qsettings.get_value(key)
 
     def set_value(self, key, value):
+        if isinstance(value, bytes):
+            raise TypeError("value cannot be bytes")
         return self._qsettings.set_value(key, value)
 
     def del_value(self, key):
@@ -455,9 +463,7 @@ def get_meta_netnode():
     Get the netnode used to store settings metadata in the current IDB.
     Note that this implicitly uses the open IDB via the idc iterface.
     """
-    node_name = "$ {org:s}.{application:s}".format(
-        org=IDA_SETTINGS_ORGANIZATION,
-        application=IDA_SETTINGS_APPLICATION)
+    node_name = "$ {org:s}.{application:s}".format(org=IDA_SETTINGS_ORGANIZATION, application=IDA_SETTINGS_APPLICATION)
     return netnode.Netnode(node_name)
 
 
@@ -518,9 +524,8 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
     @property
     def _netnode(self):
         node_name = "$ {org:s}.{application:s}.{plugin_name:s}".format(
-            org=IDA_SETTINGS_ORGANIZATION,
-            application=IDA_SETTINGS_APPLICATION,
-            plugin_name=self._plugin_name)
+            org=IDA_SETTINGS_ORGANIZATION, application=IDA_SETTINGS_APPLICATION, plugin_name=self._plugin_name
+        )
         return netnode.Netnode(node_name)
 
     def get_value(self, key):
@@ -539,7 +544,8 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
     def set_value(self, key, value):
         if not isinstance(key, str):
             raise TypeError("key must be a string")
-
+        if isinstance(value, bytes):
+            raise TypeError("value cannot be bytes")
         self._netnode[key] = json.dumps(value)
         add_netnode_plugin_name(self._plugin_name)
 
@@ -761,9 +767,9 @@ class IDASettings(object):
 
         rtype: Sequence[str]
         """
-        return QtCore.QSettings(QtCore.QSettings.SystemScope,
-                                IDA_SETTINGS_ORGANIZATION,
-                                IDA_SETTINGS_APPLICATION).childGroups()[:]
+        return QtCore.QSettings(
+            QtCore.QSettings.SystemScope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION
+        ).childGroups()[:]
 
     @staticmethod
     def get_user_plugin_names():
@@ -776,9 +782,9 @@ class IDASettings(object):
 
         rtype: Sequence[str]
         """
-        return QtCore.QSettings(QtCore.QSettings.UserScope,
-                                IDA_SETTINGS_ORGANIZATION,
-                                IDA_SETTINGS_APPLICATION).childGroups()[:]
+        return QtCore.QSettings(
+            QtCore.QSettings.UserScope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION
+        ).childGroups()[:]
 
     @staticmethod
     def get_directory_plugin_names(config_directory=None):
@@ -794,8 +800,9 @@ class IDASettings(object):
         rtype: Sequence[str]
         """
         ensure_ida_loaded()
-        return QtCore.QSettings(get_directory_config_path(directory=config_directory),
-                                QtCore.QSettings.IniFormat).childGroups()[:]
+        return QtCore.QSettings(
+            get_directory_config_path(directory=config_directory), QtCore.QSettings.IniFormat
+        ).childGroups()[:]
 
     @staticmethod
     def get_idb_plugin_names():
@@ -835,4 +842,3 @@ def export_settings(settings, config_path):
     other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
     for k, v in settings.items():
         other.setValue(k, v)
-

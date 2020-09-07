@@ -4,11 +4,11 @@
 #  run this file as an IDAPython script to invoke the tests.
 #
 #######################################################################################
+import logging
 import unittest
 import contextlib
-import logging
 
-from .ida_settings import IDASettings, PermissionError
+from ida_settings import IDASettings, PermissionError
 
 g_logger = logging.getLogger("ida-settings")
 
@@ -16,12 +16,15 @@ PLUGIN_1 = "plugin1"
 PLUGIN_2 = "plugin2"
 KEY_1 = "key_1"
 KEY_2 = "key_2"
-VALUE_1 = b"hello"
-VALUE_2 = b"goodbye"
+VALUE_1 = "hello"
+VALUE_2 = "goodbye"
+VALUE_STR = "foo"
 VALUE_INT = 69
 VALUE_FLOAT = 69.69
 VALUE_LIST = ["a", "b", "c"]
 VALUE_DICT = {"a": 1, "b": "2", "c": 3.0}
+# bytes are not supported
+VALUE_BYTES = b"foo"
 
 
 class TestSync(unittest.TestCase):
@@ -35,28 +38,28 @@ class TestSync(unittest.TestCase):
             IDASettings(PLUGIN_1).system.set_value(KEY_1, VALUE_1)
             self.assertEqual(IDASettings(PLUGIN_1).system.get_value(KEY_1), VALUE_1)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_user(self):
         try:
             IDASettings(PLUGIN_1).user.set_value(KEY_1, VALUE_1)
             self.assertEqual(IDASettings(PLUGIN_1).user.get_value(KEY_1), VALUE_1)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_directory(self):
         try:
             IDASettings(PLUGIN_1).directory.set_value(KEY_1, VALUE_1)
             self.assertEqual(IDASettings(PLUGIN_1).directory.get_value(KEY_1), VALUE_1)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_idb(self):
         try:
             IDASettings(PLUGIN_1).idb.set_value(KEY_1, VALUE_1)
             self.assertEqual(IDASettings(PLUGIN_1).idb.get_value(KEY_1), VALUE_1)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
 
 @contextlib.contextmanager
@@ -84,7 +87,7 @@ class TestSettingsMixin(object):
                 self.settings.set_value(KEY_1, VALUE_2)
                 self.assertEqual(self.settings.get_value(KEY_1), VALUE_2)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_del(self):
         try:
@@ -94,7 +97,7 @@ class TestSettingsMixin(object):
                 with self.assertRaises(KeyError):
                     self.settings.get_value(KEY_1)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_keys(self):
         try:
@@ -106,7 +109,7 @@ class TestSettingsMixin(object):
                 self.settings.set_value(KEY_2, VALUE_2)
                 self.assertEqual(list(self.settings.get_keys()), [KEY_1, KEY_2])
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_dict(self):
         try:
@@ -121,16 +124,19 @@ class TestSettingsMixin(object):
                 del self.settings[KEY_1]
                 self.assertEqual(list(self.settings.keys()), [KEY_2])
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_types(self):
         try:
             with clearing(self.settings):
-                for v in [VALUE_INT, VALUE_FLOAT, VALUE_LIST, VALUE_DICT]:
+                for v in [VALUE_STR, VALUE_INT, VALUE_FLOAT, VALUE_LIST, VALUE_DICT]:
                     self.settings.set_value(KEY_1, v)
                     self.assertEqual(self.settings[KEY_1], v)
+
+                self.assertRaises(TypeError, self.settings.set_value, KEY_1, VALUE_BYTES)
+
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_large_values(self):
         large_value_1 = "".join(VALUE_1 * 1000)
@@ -144,7 +150,7 @@ class TestSettingsMixin(object):
                 self.settings.set_value(KEY_1, large_value_2)
                 self.assertEqual(self.settings.get_value(KEY_1), large_value_2)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
 
 class TestSystemSettings(unittest.TestCase, TestSettingsMixin):
@@ -183,7 +189,7 @@ class TestUserAndSystemSettings(unittest.TestCase):
                     self.system.set_value(KEY_1, VALUE_1)
                     self.assertEqual(self.user.get_value(KEY_1), VALUE_1)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
 
 class TestSettingsPrecendence(unittest.TestCase):
@@ -202,7 +208,7 @@ class TestSettingsPrecendence(unittest.TestCase):
                     self.user.set_value(KEY_1, VALUE_2)
                     self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_directory_gt_user(self):
         try:
@@ -212,7 +218,7 @@ class TestSettingsPrecendence(unittest.TestCase):
                     self.directory.set_value(KEY_1, VALUE_2)
                     self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_idb_gt_directory(self):
         try:
@@ -222,95 +228,81 @@ class TestSettingsPrecendence(unittest.TestCase):
                     self.idb.set_value(KEY_1, VALUE_2)
                     self.assertEqual(self.mux.get_value(KEY_1), VALUE_2)
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
 
 class TestPluginNamesAccessors(unittest.TestCase):
     def test_system_plugin_names(self):
         try:
-            self.assertEqual(set(IDASettings.get_system_plugin_names()),
-                             set([]))
+            self.assertEqual(set(IDASettings.get_system_plugin_names()), set([]))
 
             s1 = IDASettings(PLUGIN_1).system
             with clearing(s1):
                 s1[KEY_1] = VALUE_1
-                self.assertEqual(set(IDASettings.get_system_plugin_names()),
-                                 set([PLUGIN_1]))
+                self.assertEqual(set(IDASettings.get_system_plugin_names()), set([PLUGIN_1]))
 
                 s2 = IDASettings(PLUGIN_2).system
                 with clearing(s2):
                     s2[KEY_1] = VALUE_1
-                    self.assertEqual(set(IDASettings.get_system_plugin_names()),
-                                     set([PLUGIN_1, PLUGIN_2]))
+                    self.assertEqual(set(IDASettings.get_system_plugin_names()), set([PLUGIN_1, PLUGIN_2]))
 
             self.assertEqual(set(IDASettings.get_system_plugin_names()), set([]))
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_user_plugin_names(self):
         try:
-            self.assertEqual(set(IDASettings.get_user_plugin_names()),
-                             set([]))
+            self.assertEqual(set(IDASettings.get_user_plugin_names()), set([]))
 
             s1 = IDASettings(PLUGIN_1).user
             with clearing(s1):
                 s1[KEY_1] = VALUE_1
-                self.assertEqual(set(IDASettings.get_user_plugin_names()),
-                                 set([PLUGIN_1]))
+                self.assertEqual(set(IDASettings.get_user_plugin_names()), set([PLUGIN_1]))
 
                 s2 = IDASettings(PLUGIN_2).user
                 with clearing(s2):
                     s2[KEY_1] = VALUE_1
-                    self.assertEqual(set(IDASettings.get_user_plugin_names()),
-                                     set([PLUGIN_1, PLUGIN_2]))
+                    self.assertEqual(set(IDASettings.get_user_plugin_names()), set([PLUGIN_1, PLUGIN_2]))
 
             self.assertEqual(set(IDASettings.get_user_plugin_names()), set([]))
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_directory_plugin_names(self):
         try:
-            self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                             set([]))
+            self.assertEqual(set(IDASettings.get_directory_plugin_names()), set([]))
 
             s1 = IDASettings(PLUGIN_1).directory
             with clearing(s1):
                 s1[KEY_1] = VALUE_1
-                self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                                 set([PLUGIN_1]))
+                self.assertEqual(set(IDASettings.get_directory_plugin_names()), set([PLUGIN_1]))
 
                 s2 = IDASettings(PLUGIN_2).directory
                 with clearing(s2):
                     s2[KEY_1] = VALUE_1
-                    self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                                     set([PLUGIN_1, PLUGIN_2]))
+                    self.assertEqual(set(IDASettings.get_directory_plugin_names()), set([PLUGIN_1, PLUGIN_2]))
 
-            self.assertEqual(set(IDASettings.get_directory_plugin_names()),
-                             set([]))
+            self.assertEqual(set(IDASettings.get_directory_plugin_names()), set([]))
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
     def test_idb_plugin_names(self):
         try:
-            self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                             set([]))
+            self.assertEqual(set(IDASettings.get_idb_plugin_names()), set([]))
 
             s1 = IDASettings(PLUGIN_1).idb
             with clearing(s1):
                 s1[KEY_1] = VALUE_1
-                self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                                 set([PLUGIN_1]))
+                self.assertEqual(set(IDASettings.get_idb_plugin_names()), set([PLUGIN_1]))
 
                 s2 = IDASettings(PLUGIN_2).idb
                 with clearing(s2):
                     s2[KEY_1] = VALUE_1
-                    self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                                     set([PLUGIN_1, PLUGIN_2]))
+                    self.assertEqual(set(IDASettings.get_idb_plugin_names()), set([PLUGIN_1, PLUGIN_2]))
 
-            self.assertEqual(set(IDASettings.get_idb_plugin_names()),
-                             set([]))
+            self.assertEqual(set(IDASettings.get_idb_plugin_names()), set([]))
         except PermissionError:
-            g_logger.warn("swallowing PermissionError during testing")
+            g_logger.warning("swallowing PermissionError during testing")
 
 
 def main():
