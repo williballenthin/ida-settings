@@ -172,6 +172,21 @@ IDA_SETTINGS_ORGANIZATION = "IDAPython"
 IDA_SETTINGS_APPLICATION = "IDA-Settings"
 
 
+def validate_key(key):
+    if not isinstance(key, str):
+        raise TypeError("key must be str")
+
+
+def validate_value(value):
+    if six.PY3 and isinstance(value, bytes):
+        raise TypeError("value cannot be bytes")
+
+    try:
+        _ = json.dumps(value)
+    except:
+        raise TypeError("value cannot be json encoded")
+
+
 # enforce methods required by settings providers
 class IDASettingsInterface(six.with_metaclass(abc.ABCMeta)):
     @abc.abstractmethod
@@ -246,18 +261,16 @@ class IDASettingsBase(IDASettingsInterface):
 # allow IDASettings to look like dicts
 class DictMixin:
     def __getitem__(self, key):
-        if not isinstance(key, str):
-            raise TypeError("key must be a string")
+        validate_key(key)
         return self.get_value(key)
 
     def __setitem__(self, key, value):
-        if not isinstance(key, str):
-            raise TypeError("key must be a string")
+        validate_key(key)
+        validate_value(value)
         return self.set_value(key, value)
 
     def __delitem__(self, key):
-        if not isinstance(key, str):
-            raise TypeError("key must be a string")
+        validate_key(key)
         return self.del_value(key)
 
     def get(self, key, default=None):
@@ -336,18 +349,20 @@ class QSettingsIDASettings(IDASettingsInterface):
             raise PermissionError()
 
     def get_value(self, key):
+        validate_key(key)
         v = self._settings.value(key)
         if v is None:
             raise KeyError("key not found")
         return json.loads(v)
 
     def set_value(self, key, value):
-        if isinstance(value, bytes):
-            raise TypeError("value cannot be bytes")
+        validate_key(key)
+        validate_value(value)
         self._check_perms()
         self._settings.setValue(key, json.dumps(value))
 
     def del_value(self, key):
+        validate_key(key)
         self._check_perms()
         return self._settings.remove(key)
 
@@ -374,14 +389,16 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
         self._qsettings = QSettingsIDASettings(s)
 
     def get_value(self, key):
+        validate_key(key)
         return self._qsettings.get_value(key)
 
     def set_value(self, key, value):
-        if isinstance(value, bytes):
-            raise TypeError("value cannot be bytes")
+        validate_key(key)
+        validate_value(value)
         return self._qsettings.set_value(key, value)
 
     def del_value(self, key):
+        validate_key(key)
         return self._qsettings.del_value(key)
 
     def get_keys(self):
@@ -404,14 +421,16 @@ class UserIDASettings(IDASettingsBase, DictMixin):
         self._qsettings = QSettingsIDASettings(s)
 
     def get_value(self, key):
+        validate_key(key)
         return self._qsettings.get_value(key)
 
     def set_value(self, key, value):
-        if isinstance(value, bytes):
-            raise TypeError("value cannot be bytes")
+        validate_key(key)
+        validate_value(value)
         return self._qsettings.set_value(key, value)
 
     def del_value(self, key):
+        validate_key(key)
         return self._qsettings.del_value(key)
 
     def get_keys(self):
@@ -443,14 +462,16 @@ class DirectoryIDASettings(IDASettingsBase, DictMixin):
         self._qsettings = QSettingsIDASettings(s)
 
     def get_value(self, key):
+        validate_key(key)
         return self._qsettings.get_value(key)
 
     def set_value(self, key, value):
-        if isinstance(value, bytes):
-            raise TypeError("value cannot be bytes")
+        validate_key(key)
+        validate_value(value)
         return self._qsettings.set_value(key, value)
 
     def del_value(self, key):
+        validate_key(key)
         return self._qsettings.del_value(key)
 
     def get_keys(self):
@@ -531,8 +552,7 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         return netnode.Netnode(node_name)
 
     def get_value(self, key):
-        if not isinstance(key, str):
-            raise TypeError("key must be a string")
+        validate_key(key)
 
         try:
             v = self._netnode[key]
@@ -544,16 +564,13 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
         return json.loads(v)
 
     def set_value(self, key, value):
-        if not isinstance(key, str):
-            raise TypeError("key must be a string")
-        if isinstance(value, bytes):
-            raise TypeError("value cannot be bytes")
+        validate_key(key)
+        validate_value(value)
         self._netnode[key] = json.dumps(value)
         add_netnode_plugin_name(self._plugin_name)
 
     def del_value(self, key):
-        if not isinstance(key, str):
-            raise TypeError("key must be a string")
+        validate_key(key)
 
         try:
             del self._netnode[key]
@@ -638,6 +655,8 @@ class IDASettings(object):
         type key: basestring
         rtype value: Union[basestring, int, float, List, Dict]
         """
+        validate_key(key)
+
         try:
             return self.idb.get_value(key)
         except (KeyError, EnvironmentError):
@@ -742,15 +761,18 @@ class IDASettings(object):
         return list(self.items())
 
     def __getitem__(self, key):
+        validate_key(key)
         return self.get_value(key)
 
     def get(self, key, default=None):
+        validate_key(key)
         try:
             return self[key]
         except KeyError:
             return default
 
     def __contains__(self, key):
+        validate_key(key)
         try:
             if self[key] is not None:
                 return True
