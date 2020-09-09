@@ -11,7 +11,7 @@ setup(
     url="https://github.com/williballenthin/ida-settings",
     license="Apache License (2.0)",
     packages=["ida_settings"],
-    install_requires=["ida-netnode"],
+    install_requires=["ida-netnode", "six"],
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",

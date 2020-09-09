@@ -100,6 +100,8 @@ import sys
 import json
 import datetime
 
+import six
+
 try:
     import idc
     import idaapi
@@ -171,7 +173,7 @@ IDA_SETTINGS_APPLICATION = "IDA-Settings"
 
 
 # enforce methods required by settings providers
-class IDASettingsInterface(metaclass=abc.ABCMeta):
+class IDASettingsInterface(six.with_metaclass(abc.ABCMeta)):
     @abc.abstractmethod
     def get_value(self, key):
         """
