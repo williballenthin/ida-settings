@@ -8,24 +8,47 @@ on:
     types: [created]
 
 jobs:
-  deploy:
-
+  build:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - name: Checkout
+      uses: actions/checkout@v5
       with:
-        python-version: '2.7'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        python setup.py sdist bdist_wheel
-        twine upload --skip-existing  dist/*
+        fetch-depth: 0
+
+    - name: Setup Python with uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: false
+        python-version: 3.13
+    - name: Build package
+      run: uv build
+    - uses: actions/upload-artifact@v4
+      name: upload
+      with:
+        path: dist/*
+    
+  pypi-publish:
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/')"
+    needs: [ build ]
+    environment:
+      name: release
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+      - name: move files to dist/
+        run: |
+          shopt -s globstar  # Enable recursive globbing (**)
+          rm -rf dist/
+          mkdir dist/
+          cp -r artifacts/**/*.whl dist/
+      - name: publish package
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
+        with:
+          skip-existing: true
+          verbose: true
+          print-hash: true

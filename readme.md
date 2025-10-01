@@ -1,100 +1,33 @@
-ida_settings provides a mechanism for settings and fetching
-configration values for IDAPython scripts and plugins.
-Configurations are namespaced by plugin name,
-and scoped to the global system, current user,
-working directory, or current IDB file. Configurations
-can be exported and imported using an .ini-style intermediate
-representation.
+# ida-settings
 
-Example fetching a configuration value:
+ida-settings is a Python library used by IDA Pro plugins to fetch configuration values from the shared settings infrastructure.
 
-    settings = IDASettings("MSDN-doc")
-    if settings["verbosity"] == "high":
-        ...
+During plugin installation, [hcli](https://hcli.docs.hex-rays.com/) prompts users for the configuration values and stores them in `ida-config.json`.
+Subsequently, users can invoke hcli (or later, the IDA Pro GUI) to update their configuration.
+This is the library that plugins use to fetch the configuration values.
 
-Example setting a global configuration value:
+For example, within an IDA Pro plugin:
 
-    settings = IDASettings("MSDN-doc")
-    settings.system["verbosity"] = "high"
+```py
+import ida_settings
 
-Example setting a working directory configuration value:
+api_key = ida_settings.get_current_plugin_setting("openai_key")
+```
 
-    settings = IDASettings("MSDN-doc")
-    settings.directory["verbosity"] = "high"
+### API reference
 
-Use the properties "system", "user", "directory" and "idb"
-to scope configuration accesses and mutations to the global
-system, current user, working directory, or current IDB file.
+```
+def get_current_plugin_setting(key: str) -> str | bool
+```
 
-Plugins that write settings should pick the appropriate
-scope for their settings. Plugins that read settings should
-fetch them from the default scope. This allows for precedence
-of scopes, such as the current IDB over system-wide configuration.
-For example:
+Fetch the setting value identified by `key`, raising `KeyError` if its not found.
+This setting should be declared in the current plugin's `ida-plugin.json` file.
 
-    settings = IDASettings("MSDN-doc")
-    # when writing, use a scope:
-    settings.user["verbosity"] = "high"
-    
-    # when reading, use the default scope:
-    settings["verbosity"] --> "high"
+Changing of configuration values should be done via hcli (or later, the IDA Pro GUI).
+Plugins shouldn't have to do this themselves - but open an issue for discussion if you think otherwise.
 
-Generally, treat a settings instance like a dictionary. For example:
 
-    settings = IDASettings("MSDN-doc")
-    "verbosity" in settings.user --> False
-    settings.user["verbosity"] = "high"
-    settings.user["verbosity"] --> "high"
-    settings.user.keys()       --> ["verbosity"]
-    settings.user.values()     --> ["high"]
-    settings.user.items()      --> [("verbosity", "high')]
+### Notes
 
-The value of a particular settings entry must be a JSON-encodable
-value. For example, these are fine:
-
-    settings = IDASettings("MSDN-doc")
-    settings.user["verbosity"] = "high"
-    settings.user["count"] = 1
-    settings.user["percentage"] = 0.75
-    settings.user["filenames"] = ["a.txt", "b.txt"]
-    settings.user["aliases"] = {"bp": "breakpoint", "g": "go"}
-
-and this is not:
-
-    settings.user["object"] = hashlib.md5()      # this is not JSON-encodable
-
-To export the current effective settings, use the `export_settings`
-function. For example:
-
-    settings = IDASettings("MSDN-doc")
-    export_settings(settings, "/home/user/desktop/current.ini")
-
-To import existing settings into a settings instance, such as
-the open IDB, use the `import_settings` function. For example:
-
-    settings = IDASettings("MSDN-doc")
-    import_settings(settings.idb, "/home/user/desktop/current.ini")
-
-Enumerate the plugin names for the various levels using the
-IDASettings class properties:
-
-    IDASettings.get_system_plugin_names()     --> ["plugin-1", "plugin-2"]
-    IDASettings.get_user_plugin_names()       --> ["plugin-3", "plugin-4"]
-    IDASettings.get_directory_plugin_names()  --> ["plugin-5", "plugin-6"]
-    IDASettings.get_idb_plugin_names()        --> ["plugin-7", "plugin-8"]
-
-This module is a single file that you can include in IDAPython
-plugin module or scripts.
-
-It depends on ida-netnode, which you can download here: 
-https://github.com/williballenthin/ida-netnode
-
-This project is licensed under the Apache 2.0 license.
-
-Author: Willi Ballenthin <william.ballenthin@fireeye.com>
-
-## settings editor
-
-Run this script `ida_settings/ui/ida_settings_viewer.py` as an IDAPython script to review, modify, and save settings from the system, user, directory, and IDB scopes on a per-plugin basis.
-
-![UI Screenshot](/img/ui.png?raw=true "UI Screenshot")
+- this library relies on the IDA Pro's specific plugin environment to identify the current plugin; therefore, this library doesn't work outside of IDA Pro.
+- plugins shouldn't try to reach into `ida-config.json` themselves, because in the future, we may introduce cascading settings, a la VS Code.
