@@ -87,6 +87,7 @@ import abc
 import sys
 import json
 import datetime
+import warnings
 
 try:
     import idc
@@ -143,6 +144,21 @@ QtCore = import_qtcore()
 CONFIG_FILE_NANE = ".ida-settings.ini"
 IDA_SETTINGS_ORGANIZATION = "IDAPython"
 IDA_SETTINGS_APPLICATION = "IDA-Settings"
+
+
+def deprecated(func):
+    """Decorator to mark functions as deprecated."""
+    def wrapper(*args, **kwargs):
+        warnings.warn(
+            f"{func.__name__} is deprecated and will be removed in a future version. "
+            "Please migrate to the new ida_settings API.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return func(*args, **kwargs)
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
 
 
 def validate_key(key):
