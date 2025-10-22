@@ -88,8 +88,6 @@ import sys
 import json
 import datetime
 
-import six
-
 try:
     import idc
     import idaapi
@@ -166,7 +164,7 @@ def validate_key(key):
 
 
 def validate_value(value):
-    if six.PY3 and isinstance(value, bytes):
+    if isinstance(value, bytes):
         raise TypeError("value cannot be bytes")
 
     try:
@@ -176,7 +174,7 @@ def validate_value(value):
 
 
 # enforce methods required by settings providers
-class IDASettingsInterface(six.with_metaclass(abc.ABCMeta)):
+class IDASettingsInterface(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_value(self, key):
         """
