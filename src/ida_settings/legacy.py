@@ -585,6 +585,7 @@ def ensure_ida_loaded():
 
 
 class IDASettings(object):
+    @deprecated
     def __init__(self, plugin_name, directory=None):
         super(IDASettings, self).__init__()
         if not validate(plugin_name):
