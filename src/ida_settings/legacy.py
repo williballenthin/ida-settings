@@ -842,27 +842,3 @@ class IDASettings(object):
         """
         ensure_ida_loaded()
         return get_netnode_plugin_names()
-
-
-def import_settings(settings, config_path):
-    """
-    Import settings from the given file system path to given settings instance.
-
-    type settings: IDASettingsInterface
-    type config_path: str
-    """
-    other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
-    for k in other.allKeys():
-        settings[k] = other.value(k)
-
-
-def export_settings(settings, config_path):
-    """
-    Export the given settings instance to the given file system path.
-
-    type settings: IDASettingsInterface
-    type config_path: str
-    """
-    other = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
-    for k, v in settings.items():
-        other.setValue(k, v)
