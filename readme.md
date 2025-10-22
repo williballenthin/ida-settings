@@ -31,3 +31,49 @@ Plugins shouldn't have to do this themselves - but open an issue for discussion 
 
 - this library relies on the IDA Pro's specific plugin environment to identify the current plugin; therefore, this library doesn't work outside of IDA Pro.
 - plugins shouldn't try to reach into `ida-config.json` themselves, because in the future, we may introduce cascading settings, a la VS Code.
+
+## IDA Settings Editor Plugin
+
+This repository also includes a graphical settings manager plugin for IDA Pro.
+
+### Features
+
+- Browse all plugins with settings
+- Edit settings with appropriate UI controls
+- Immediate validation and feedback
+- Revert to defaults
+- Dockable/floating window
+
+### Installation
+
+```bash
+hcli plugin install /path/to/ida-settings
+```
+
+### Usage
+
+Open via:
+- Edit → Plugins → Plugin Settings Manager
+- View → Open subviews → Plugin Settings Manager
+
+See [Plugin Usage Guide](docs/plugin-usage.md) for details.
+
+## Standalone Development Mode
+
+For development and testing, you can run the settings editor outside of IDA Pro:
+
+```bash
+cd /path/to/ida-settings
+python plugin/main.py
+```
+
+This standalone mode:
+- Uses the same settings editor UI as the IDA plugin
+- Reads/writes settings from your IDA user directory (`~/.idapro` on macOS/Linux)
+- Requires HCLI library but not IDA Pro itself
+- Useful for UI development and debugging
+
+**Requirements:**
+- Python 3.9+
+- PyQt5 or PySide6
+- HCLI library installed

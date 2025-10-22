@@ -1,0 +1,84 @@
+{
+  "IDAMetadataDescriptorVersion": 1,
+  "plugin": {
+    "name": "ida-settings-editor",
+    "version": "1.0.0",
+    "description": "Settings manager UI for IDA Pro plugins",
+    "entryPoint": "./plugin/entrypoint.py",
+    "authors": [{"name": "Willi Ballenthin", "email": "wballenthin@hex-rays.com"}],
+    "urls": {
+      "repository": "https://github.com/williballenthin/ida-settings"
+    },
+    "idaVersions": ">=9.2",
+    "category": "ui-ux-and-visualization",
+    "pythonDependencies": ["ida-hcli", "ida-settings"],
+    "keywords": [
+      "settings",
+      "configuration",
+      "preferences",
+      "plugin-manager",
+      "ui",
+      "editor"
+    ],
+    "settings": [
+      {
+        "key": "required_api_key",
+        "type": "string",
+        "required": true,
+        "name": "API Key",
+        "documentation": "Required API key for authentication (cannot be deleted)"
+      },
+      {
+        "key": "key1",
+        "type": "string",
+        "required": false,
+        "default": "default-value",
+        "name": "Demo String Setting",
+        "documentation": "A demo string setting to test the settings editor"
+      },
+      {
+        "key": "key2",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "name": "Demo Boolean Setting",
+        "documentation": "A demo boolean setting to test the settings editor"
+      },
+      {
+        "key": "log_level",
+        "type": "string",
+        "required": false,
+        "default": "info",
+        "name": "Log Level",
+        "documentation": "Logging verbosity level",
+        "choices": ["debug", "info", "warning", "error"]
+      },
+      {
+        "key": "api_endpoint",
+        "type": "string",
+        "required": false,
+        "default": "https://api.example.com",
+        "name": "API Endpoint",
+        "documentation": "URL for the API endpoint (must start with https://)",
+        "validation_pattern": "^https://.*$"
+      },
+      {
+        "key": "enable_debug_mode",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "name": "Enable Debug Mode",
+        "documentation": "Enable verbose debug logging and diagnostics"
+      },
+      {
+        "key": "timeout",
+        "type": "string",
+        "required": true,
+        "default": "30",
+        "name": "Timeout",
+        "documentation": "Request timeout in seconds (must be a positive integer)",
+        "validation_pattern": "^[1-9][0-9]*$"
+      }
+    ]
+  }
+}
