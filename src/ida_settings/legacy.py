@@ -64,18 +64,6 @@ and this is not:
 
     settings.user["object"] = hashlib.md5()      # this is not JSON-encodable
 
-To export the current effective settings, use the `export_settings`
-function. For example:
-
-    settings = IDASettings("MSDN-doc")
-    export_settings(settings, "/home/user/desktop/current.ini")
-
-To import existing settings into a settings instance, such as
-the open IDB, use the `import_settings` function. For example:
-
-    settings = IDASettings("MSDN-doc")
-    import_settings(settings.idb, "/home/user/desktop/current.ini")
-
 Enumerate the plugin names for the various levels using the
 IDASettings class properties:
 
