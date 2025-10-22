@@ -99,23 +99,14 @@ except ImportError:
 # we'll use a function here to avoid polluting our global variable namespace.
 def import_qtcore():
     """
-    This nasty piece of code is here to force the loading of IDA's
-     Qt bindings.
-    Without it, Python attempts to load PySide from the site-packages
-     directory, and failing, as it does not play nicely with IDA.
-
-    via: github.com/tmr232/Cute
+    Force loading of IDA's Qt bindings.
+    Supports PyQt5 and PySide6.
     """
     has_ida = False
     try:
-        # if we're running under IDA,
-        # then we'll use IDA's Qt bindings
         import idaapi
-
         has_ida = True
     except ImportError:
-        # not running under IDA,
-        # so use default Qt installation
         has_ida = False
 
     if has_ida:
@@ -123,32 +114,28 @@ def import_qtcore():
         try:
             ida_python_path = os.path.dirname(idaapi.__file__)
             sys.path.insert(0, ida_python_path)
-            if idaapi.IDA_SDK_VERSION >= 690:
+            try:
                 from PyQt5 import QtCore
-
                 return QtCore
-            else:
-                from PySide import QtCore
-
+            except ImportError:
+                from PySide6 import QtCore
                 return QtCore
         finally:
             sys.path = old_path
     else:
         try:
             from PyQt5 import QtCore
-
             return QtCore
         except ImportError:
             pass
 
         try:
-            from PySide import QtCore
-
+            from PySide6 import QtCore
             return QtCore
         except ImportError:
             pass
 
-        raise ImportError("No module named PySide or PyQt")
+        raise ImportError("No module named PyQt5 or PySide6")
 
 
 QtCore = import_qtcore()
