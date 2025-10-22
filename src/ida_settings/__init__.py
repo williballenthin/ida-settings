@@ -7,6 +7,7 @@ from hcli.lib.ida.plugin.settings import (
 from hcli.lib.ida.plugin.settings import (
     list_current_plugin_settings as _list_current_plugin_settings,
 )
+from .legacy import IDASettings, PermissionError
 
 __all__ = [
     "del_current_plugin_setting",
@@ -14,6 +15,8 @@ __all__ = [
     "has_current_plugin_setting",
     "set_current_plugin_setting",
     "list_current_plugin_settings",
+    "IDASettings",
+    "PermissionError",
 ]
 
 
