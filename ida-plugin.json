@@ -2,7 +2,7 @@
   "IDAMetadataDescriptorVersion": 1,
   "plugin": {
     "name": "ida-settings-editor",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Settings manager UI for IDA Pro plugins",
     "entryPoint": "./plugin/entrypoint.py",
     "authors": [{"name": "Willi Ballenthin", "email": "wballenthin@hex-rays.com"}],
