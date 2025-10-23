@@ -23,8 +23,8 @@ def get_current_plugin_setting(key: str) -> str | bool
 Fetch the setting value identified by `key`, raising `KeyError` if its not found.
 This setting should be declared in the current plugin's `ida-plugin.json` file.
 
-Changing of configuration values should be done via hcli (or later, the IDA Pro GUI).
-Plugins shouldn't have to do this themselves - but open an issue for discussion if you think otherwise.
+Changing of configuration values should be done via hcli or the IDA Pro GUI.
+However, there are also `set`/`del`/`has`/`list` routines for programmatic access.
 
 
 ### Notes
