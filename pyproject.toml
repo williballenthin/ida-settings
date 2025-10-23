@@ -6,7 +6,7 @@ readme = "readme.md"
 authors = [
     { name = "Willi Ballenthin", email = "wballenthin@hex-rays.com" }
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "ida-hcli>=0.12.1"
 ]

@@ -9,8 +9,11 @@
     "urls": {
       "repository": "https://github.com/williballenthin/ida-settings"
     },
+    "license": "Apache 2.0",
     "idaVersions": ">=9.2",
-    "category": "ui-ux-and-visualization",
+    "categories": [
+      "ui-ux-and-visualization"
+    ],
     "pythonDependencies": ["ida-hcli", "ida-settings"],
     "keywords": [
       "settings",
