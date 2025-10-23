@@ -2,7 +2,7 @@
   "IDAMetadataDescriptorVersion": 1,
   "plugin": {
     "name": "ida-settings-editor",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Settings manager UI for IDA Pro plugins",
     "entryPoint": "./plugin/entrypoint.py",
     "authors": [{"name": "Willi Ballenthin", "email": "wballenthin@hex-rays.com"}],
@@ -28,7 +28,7 @@
         "key": "required_api_key",
         "type": "string",
         "required": true,
-        "name": "API Key",
+        "name": "Demo API Key",
         "documentation": "Required API key for authentication (cannot be deleted)"
       },
       {
@@ -52,7 +52,7 @@
         "type": "string",
         "required": false,
         "default": "info",
-        "name": "Log Level",
+        "name": "Demo Log Level",
         "documentation": "Logging verbosity level",
         "choices": ["debug", "info", "warning", "error"]
       },
@@ -61,7 +61,7 @@
         "type": "string",
         "required": false,
         "default": "https://api.example.com",
-        "name": "API Endpoint",
+        "name": "Demo API Endpoint",
         "documentation": "URL for the API endpoint (must start with https://)",
         "validation_pattern": "^https://.*$"
       },
@@ -70,7 +70,7 @@
         "type": "boolean",
         "required": false,
         "default": false,
-        "name": "Enable Debug Mode",
+        "name": "Demo Enable Debug Mode",
         "documentation": "Enable verbose debug logging and diagnostics"
       },
       {
@@ -78,7 +78,7 @@
         "type": "string",
         "required": true,
         "default": "30",
-        "name": "Timeout",
+        "name": "Demo Timeout",
         "documentation": "Request timeout in seconds (must be a positive integer)",
         "validation_pattern": "^[1-9][0-9]*$"
       }
