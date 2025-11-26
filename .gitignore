@@ -61,3 +61,6 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 uv.lock
+.direnv/*
+.env/*
+.envrc
