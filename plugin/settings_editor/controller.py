@@ -1,7 +1,7 @@
 """Settings controller."""
 
 from settings_editor.model import SettingsModel
-from settings_editor.view import settings_manager_widget_t, setting_editor_row_t
+from settings_editor.view import setting_editor_row_t, settings_manager_widget_t
 
 
 class SettingsController:
@@ -45,17 +45,23 @@ class SettingsController:
             descriptors = self.model.get_plugin_settings(plugin_name)
 
             if not descriptors:
-                self.view.settings_editor.show_message("No settings defined for this plugin")
+                self.view.settings_editor.show_message(
+                    "No settings defined for this plugin"
+                )
                 return
 
             for descriptor in descriptors:
                 row = setting_editor_row_t(descriptor)
 
-                is_explicit = self.model.is_setting_explicit(plugin_name, descriptor.key)
+                is_explicit = self.model.is_setting_explicit(
+                    plugin_name, descriptor.key
+                )
 
                 if is_explicit:
                     try:
-                        value = self.model.get_setting_value(plugin_name, descriptor.key)
+                        value = self.model.get_setting_value(
+                            plugin_name, descriptor.key
+                        )
                         row.set_value(value)
                     except KeyError:
                         pass

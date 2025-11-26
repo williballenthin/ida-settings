@@ -3,14 +3,16 @@
 from typing import Callable, Tuple
 
 try:
-    from PyQt5.QtWidgets import QCheckBox, QLineEdit, QComboBox, QWidget
+    from PyQt5.QtWidgets import QCheckBox, QComboBox, QLineEdit, QWidget
 except ImportError:
-    from PySide6.QtWidgets import QCheckBox, QLineEdit, QComboBox, QWidget
+    from PySide6.QtWidgets import QCheckBox, QComboBox, QLineEdit, QWidget
 
 from hcli.lib.ida.plugin import PluginSettingDescriptor
 
 
-def create_boolean_editor(descriptor: PluginSettingDescriptor) -> Tuple[QWidget, Callable, Callable]:
+def create_boolean_editor(
+    descriptor: PluginSettingDescriptor,
+) -> Tuple[QWidget, Callable, Callable]:
     """Create a checkbox editor for boolean settings.
 
     Returns:
@@ -23,14 +25,18 @@ def create_boolean_editor(descriptor: PluginSettingDescriptor) -> Tuple[QWidget,
 
     def set_value(value):
         if value is None:
-            checkbox.setChecked(bool(descriptor.default) if descriptor.default is not None else False)
+            checkbox.setChecked(
+                bool(descriptor.default) if descriptor.default is not None else False
+            )
         else:
             checkbox.setChecked(bool(value))
 
     return checkbox, get_value, set_value
 
 
-def create_string_editor(descriptor: PluginSettingDescriptor) -> Tuple[QWidget, Callable, Callable]:
+def create_string_editor(
+    descriptor: PluginSettingDescriptor,
+) -> Tuple[QWidget, Callable, Callable]:
     """Create a text input or combobox editor for string settings.
 
     Returns:
@@ -73,7 +79,9 @@ def create_string_editor(descriptor: PluginSettingDescriptor) -> Tuple[QWidget, 
         return lineedit, get_value, set_value
 
 
-def create_editor_for_setting(descriptor: PluginSettingDescriptor) -> Tuple[QWidget, Callable, Callable]:
+def create_editor_for_setting(
+    descriptor: PluginSettingDescriptor,
+) -> Tuple[QWidget, Callable, Callable]:
     """Create appropriate editor widget for setting type.
 
     Returns:

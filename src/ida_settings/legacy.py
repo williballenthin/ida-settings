@@ -36,7 +36,7 @@ For example:
     settings = IDASettings("MSDN-doc")
     # when writing, use a scope:
     settings.user["verbosity"] = "high"
-    
+
     # when reading, use the default scope:
     settings["verbosity"] --> "high"
 
@@ -75,23 +75,24 @@ IDASettings class properties:
 This module is a single file that you can include in IDAPython
 plugin module or scripts.
 
-It depends on ida-netnode, which you can download here: 
+It depends on ida-netnode, which you can download here:
 https://github.com/williballenthin/ida-netnode
 
 This project is licensed under the Apache 2.0 license.
 
 Author: Willi Ballenthin <william.ballenthin@fireeye.com>
 """
-import os
+
 import abc
-import sys
-import json
 import datetime
+import json
+import os
+import sys
 import warnings
 
 try:
-    import idc
     import idaapi
+    import idc
     import netnode
 except ImportError:
     pass
@@ -106,6 +107,7 @@ def import_qtcore():
     has_ida = False
     try:
         import idaapi
+
         has_ida = True
     except ImportError:
         has_ida = False
@@ -117,21 +119,25 @@ def import_qtcore():
             sys.path.insert(0, ida_python_path)
             try:
                 from PyQt5 import QtCore
+
                 return QtCore
             except ImportError:
                 from PySide6 import QtCore
+
                 return QtCore
         finally:
             sys.path = old_path
     else:
         try:
             from PyQt5 import QtCore
+
             return QtCore
         except ImportError:
             pass
 
         try:
             from PySide6 import QtCore
+
             return QtCore
         except ImportError:
             pass
@@ -148,14 +154,16 @@ IDA_SETTINGS_APPLICATION = "IDA-Settings"
 
 def deprecated(func):
     """Decorator to mark functions as deprecated."""
+
     def wrapper(*args, **kwargs):
         warnings.warn(
             f"{func.__name__} is deprecated and will be removed in a future version. "
             "Please migrate to the new ida_settings API.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         return func(*args, **kwargs)
+
     wrapper.__name__ = func.__name__
     wrapper.__doc__ = func.__doc__
     return wrapper
@@ -186,7 +194,7 @@ class IDASettingsInterface(metaclass=abc.ABCMeta):
         type key: basestring
         rtype value: Union[basestring, int, float, List, Dict]
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @abc.abstractmethod
     def set_value(self, key, value):
@@ -196,7 +204,7 @@ class IDASettingsInterface(metaclass=abc.ABCMeta):
         type key: basestring
         type value: Union[basestring, int, float, List, Dict]
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @abc.abstractmethod
     def del_value(self, key):
@@ -206,7 +214,7 @@ class IDASettingsInterface(metaclass=abc.ABCMeta):
 
         type key: basestring
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @abc.abstractmethod
     def get_keys(self):
@@ -215,7 +223,7 @@ class IDASettingsInterface(metaclass=abc.ABCMeta):
 
         rtype: Iterable[basestring]
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @abc.abstractmethod
     def clear(self):
@@ -224,7 +232,7 @@ class IDASettingsInterface(metaclass=abc.ABCMeta):
 
         rtype: None
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 def validate(s):
@@ -373,7 +381,11 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
 
     def __init__(self, plugin_name, *args, **kwargs):
         super(SystemIDASettings, self).__init__(plugin_name, *args, **kwargs)
-        s = QtCore.QSettings(QtCore.QSettings.SystemScope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION)
+        s = QtCore.QSettings(
+            QtCore.QSettings.SystemScope,
+            IDA_SETTINGS_ORGANIZATION,
+            IDA_SETTINGS_APPLICATION,
+        )
         s.beginGroup(self._plugin_name)
         self._qsettings = QSettingsIDASettings(s)
 
@@ -405,7 +417,11 @@ class UserIDASettings(IDASettingsBase, DictMixin):
 
     def __init__(self, plugin_name, *args, **kwargs):
         super(UserIDASettings, self).__init__(plugin_name, *args, **kwargs)
-        s = QtCore.QSettings(QtCore.QSettings.UserScope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION)
+        s = QtCore.QSettings(
+            QtCore.QSettings.UserScope,
+            IDA_SETTINGS_ORGANIZATION,
+            IDA_SETTINGS_APPLICATION,
+        )
         s.beginGroup(self._plugin_name)
         self._qsettings = QSettingsIDASettings(s)
 
@@ -475,7 +491,9 @@ def get_meta_netnode():
     Get the netnode used to store settings metadata in the current IDB.
     Note that this implicitly uses the open IDB via the idc iterface.
     """
-    node_name = "$ {org:s}.{application:s}".format(org=IDA_SETTINGS_ORGANIZATION, application=IDA_SETTINGS_APPLICATION)
+    node_name = "$ {org:s}.{application:s}".format(
+        org=IDA_SETTINGS_ORGANIZATION, application=IDA_SETTINGS_APPLICATION
+    )
     return netnode.Netnode(node_name)
 
 
@@ -536,7 +554,9 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
     @property
     def _netnode(self):
         node_name = "$ {org:s}.{application:s}.{plugin_name:s}".format(
-            org=IDA_SETTINGS_ORGANIZATION, application=IDA_SETTINGS_APPLICATION, plugin_name=self._plugin_name
+            org=IDA_SETTINGS_ORGANIZATION,
+            application=IDA_SETTINGS_APPLICATION,
+            plugin_name=self._plugin_name,
         )
         return netnode.Netnode(node_name)
 
@@ -578,10 +598,12 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
 
 def ensure_ida_loaded():
     try:
-        import idc
         import idaapi
+        import idc
     except ImportError:
-        raise EnvironmentError("Must be running in IDA to access IDB or directory settings")
+        raise EnvironmentError(
+            "Must be running in IDA to access IDB or directory settings"
+        )
 
 
 class IDASettings(object):
@@ -782,7 +804,9 @@ class IDASettings(object):
         rtype: Sequence[str]
         """
         return QtCore.QSettings(
-            QtCore.QSettings.SystemScope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION
+            QtCore.QSettings.SystemScope,
+            IDA_SETTINGS_ORGANIZATION,
+            IDA_SETTINGS_APPLICATION,
         ).childGroups()[:]
 
     @staticmethod
@@ -797,7 +821,9 @@ class IDASettings(object):
         rtype: Sequence[str]
         """
         return QtCore.QSettings(
-            QtCore.QSettings.UserScope, IDA_SETTINGS_ORGANIZATION, IDA_SETTINGS_APPLICATION
+            QtCore.QSettings.UserScope,
+            IDA_SETTINGS_ORGANIZATION,
+            IDA_SETTINGS_APPLICATION,
         ).childGroups()[:]
 
     @staticmethod
@@ -815,7 +841,8 @@ class IDASettings(object):
         """
         ensure_ida_loaded()
         return QtCore.QSettings(
-            get_directory_config_path(directory=config_directory), QtCore.QSettings.IniFormat
+            get_directory_config_path(directory=config_directory),
+            QtCore.QSettings.IniFormat,
         ).childGroups()[:]
 
     @staticmethod

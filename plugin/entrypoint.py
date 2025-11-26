@@ -1,4 +1,3 @@
-
 import ida_idaapi
 import ida_kernwin
 
@@ -11,15 +10,19 @@ except ImportError:
 # and it does this for all plugins.
 # so ideally plugins should avoid using common names like `model.py` and perhaps have a module structure
 
+from settings_editor.controller import SettingsController
 from settings_editor.model import SettingsModel
 from settings_editor.view import settings_manager_widget_t
-from settings_editor.controller import SettingsController
 
 
 class settings_manager_form_t(ida_kernwin.PluginForm):
     """Form for settings manager UI."""
 
-    def __init__(self, caption: str = "Plugin Settings Manager", form_registry: dict[str, "settings_manager_form_t"] | None = None):
+    def __init__(
+        self,
+        caption: str = "Plugin Settings Manager",
+        form_registry: dict[str, "settings_manager_form_t"] | None = None,
+    ):
         """Initialize form."""
         super().__init__()
         self.TITLE = caption
@@ -95,20 +98,16 @@ class settings_editor_plugmod_t(ida_idaapi.plugmod_t):
             open_settings_handler_t(self),
             "",
             "Open plugin settings manager",
-            -1
+            -1,
         )
         ida_kernwin.register_action(action_desc)
 
         ida_kernwin.attach_action_to_menu(
-            self.MENU_PATH_PLUGINS,
-            self.ACTION_NAME,
-            ida_kernwin.SETMENU_APP
+            self.MENU_PATH_PLUGINS, self.ACTION_NAME, ida_kernwin.SETMENU_APP
         )
 
         ida_kernwin.attach_action_to_menu(
-            self.MENU_PATH_SUBVIEWS,
-            self.ACTION_NAME,
-            ida_kernwin.SETMENU_APP
+            self.MENU_PATH_SUBVIEWS, self.ACTION_NAME, ida_kernwin.SETMENU_APP
         )
 
     def _unregister_actions(self):
@@ -128,12 +127,15 @@ class settings_editor_plugmod_t(ida_idaapi.plugmod_t):
                 return
 
         form = settings_manager_form_t(caption, self.form_registry)
-        form.Show(caption, options=(
-            ida_kernwin.PluginForm.WOPN_TAB |
-            ida_kernwin.PluginForm.WOPN_MENU |
-            ida_kernwin.PluginForm.WOPN_RESTORE |
-            ida_kernwin.PluginForm.WCLS_SAVE
-        ))
+        form.Show(
+            caption,
+            options=(
+                ida_kernwin.PluginForm.WOPN_TAB
+                | ida_kernwin.PluginForm.WOPN_MENU
+                | ida_kernwin.PluginForm.WOPN_RESTORE
+                | ida_kernwin.PluginForm.WCLS_SAVE
+            ),
+        )
 
     def run(self, arg):
         """Run plugin module."""

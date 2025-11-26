@@ -12,15 +12,14 @@ Usage:
 import sys
 
 try:
-    from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout
     from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget
 except ImportError:
-    from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout
-    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
+from settings_editor.controller import SettingsController
 from settings_editor.model import SettingsModel
 from settings_editor.view import settings_manager_widget_t
-from settings_editor.controller import SettingsController
 
 
 class StandaloneSettingsWindow(QWidget):
@@ -49,7 +48,7 @@ def main():
     window = StandaloneSettingsWindow()
     window.show()
 
-    return app.exec() if hasattr(app, 'exec') else app.exec_()
+    return app.exec() if hasattr(app, "exec") else app.exec_()
 
 
 if __name__ == "__main__":

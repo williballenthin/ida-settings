@@ -1,23 +1,39 @@
 """Settings view widgets."""
 
 try:
-    from PyQt5.QtWidgets import (
-        QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
-        QListWidget, QScrollArea, QSplitter, QFormLayout,
-        QComboBox, QLineEdit
-    )
-    from PyQt5.QtCore import Qt, pyqtSignal as Signal
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtCore import pyqtSignal as Signal
     from PyQt5.QtGui import QIcon
-except ImportError:
-    from PySide6.QtWidgets import (
-        QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
-        QListWidget, QScrollArea, QSplitter, QFormLayout,
-        QComboBox, QLineEdit
+    from PyQt5.QtWidgets import (
+        QComboBox,
+        QFormLayout,
+        QHBoxLayout,
+        QLabel,
+        QLineEdit,
+        QListWidget,
+        QPushButton,
+        QScrollArea,
+        QSplitter,
+        QVBoxLayout,
+        QWidget,
     )
+except ImportError:
     from PySide6.QtCore import Qt, Signal
-    from PySide6.QtGui import QIcon
+    from PySide6.QtWidgets import (
+        QComboBox,
+        QHBoxLayout,
+        QLabel,
+        QLineEdit,
+        QListWidget,
+        QPushButton,
+        QScrollArea,
+        QSplitter,
+        QVBoxLayout,
+        QWidget,
+    )
 
 from hcli.lib.ida.plugin import PluginSettingDescriptor
+
 from settings_editor.editors import create_editor_for_setting
 
 
@@ -51,7 +67,9 @@ class setting_editor_row_t(QWidget):
         editor_container = QVBoxLayout()
         editor_container.setSpacing(3)
 
-        self.editor_widget, self._get_value, self._set_value = create_editor_for_setting(self.descriptor)
+        self.editor_widget, self._get_value, self._set_value = (
+            create_editor_for_setting(self.descriptor)
+        )
         editor_container.addWidget(self.editor_widget)
 
         if self.descriptor.type == "boolean":
@@ -72,7 +90,9 @@ class setting_editor_row_t(QWidget):
             default_text = str(self.descriptor.default)
             if self.descriptor.type == "boolean":
                 default_text = "true" if self.descriptor.default else "false"
-            self.default_label = QLabel(f'<span style="color: gray; font-size: 10px;">default: {default_text}</span>')
+            self.default_label = QLabel(
+                f'<span style="color: gray; font-size: 10px;">default: {default_text}</span>'
+            )
             self.default_label.setVisible(False)
             editor_container.addWidget(self.default_label)
 
@@ -87,7 +107,9 @@ class setting_editor_row_t(QWidget):
         self.delete_button = QPushButton("✖")
         self.delete_button.setMinimumWidth(40)
         self.delete_button.setMaximumWidth(40)
-        self.delete_button.clicked.connect(lambda: self.deleteRequested.emit(self.descriptor.key))
+        self.delete_button.clicked.connect(
+            lambda: self.deleteRequested.emit(self.descriptor.key)
+        )
 
         if self.descriptor.required and self.descriptor.default is None:
             self.delete_button.setEnabled(False)
@@ -128,7 +150,9 @@ class setting_editor_row_t(QWidget):
         else:
             self.delete_button.setEnabled(is_explicit)
             if is_explicit:
-                self.delete_button.setToolTip("Delete this setting to revert to default value")
+                self.delete_button.setToolTip(
+                    "Delete this setting to revert to default value"
+                )
             else:
                 self.delete_button.setToolTip("")
 
