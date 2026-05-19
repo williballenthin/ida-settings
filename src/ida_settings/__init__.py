@@ -1,3 +1,5 @@
+import logging
+
 from hcli.lib.ida.plugin.settings import (
     del_current_plugin_setting,
     del_plugin_setting,
@@ -13,7 +15,13 @@ from hcli.lib.ida.plugin.settings import (
     list_current_plugin_settings as _list_current_plugin_settings,
 )
 
-from .legacy import IDASettings, PermissionError
+logger = logging.getLogger(__name__)
+
+try:
+    from .legacy import IDASettings, PermissionError
+except (ImportError, NotImplementedError) as e:
+    logger.warning("failed to import legacy ida-settings: %s", e)
+
 
 __all__ = [
     "del_current_plugin_setting",
