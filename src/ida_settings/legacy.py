@@ -91,7 +91,7 @@ import sys
 import warnings
 
 try:
-    import idaapi
+    import idaapi  # noqa: F401
     import idc
     import netnode
 except ImportError:
@@ -180,7 +180,7 @@ def validate_value(value):
 
     try:
         _ = json.dumps(value)
-    except:
+    except Exception:
         raise TypeError("value cannot be json encoded")
 
 
@@ -598,8 +598,8 @@ class IDBIDASettings(IDASettingsBase, DictMixin):
 
 def ensure_ida_loaded():
     try:
-        import idaapi
-        import idc
+        import idaapi  # noqa: F401
+        import idc  # noqa: F401
     except ImportError:
         raise EnvironmentError(
             "Must be running in IDA to access IDB or directory settings"

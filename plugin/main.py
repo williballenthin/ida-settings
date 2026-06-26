@@ -12,7 +12,6 @@ Usage:
 import sys
 
 try:
-    from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget
 except ImportError:
     from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
