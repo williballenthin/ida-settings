@@ -3,10 +3,8 @@
 try:
     from PyQt5.QtCore import Qt
     from PyQt5.QtCore import pyqtSignal as Signal
-    from PyQt5.QtGui import QIcon
     from PyQt5.QtWidgets import (
         QComboBox,
-        QFormLayout,
         QHBoxLayout,
         QLabel,
         QLineEdit,

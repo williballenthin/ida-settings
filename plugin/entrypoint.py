@@ -1,6 +1,7 @@
 import logging
 import os
 
+import ida_expr
 import ida_idaapi
 import ida_kernwin
 
@@ -15,10 +16,14 @@ def should_load():
         return False
 
     kernel_version: tuple[int, ...] = tuple(
-        int(part) for part in ida_kernwin.get_kernel_version().split(".") if part.isdigit()
+        int(part)
+        for part in ida_kernwin.get_kernel_version().split(".")
+        if part.isdigit()
     ) or (0,)
     if kernel_version < (9, 0):
-        logger.warning("IDA too old (must be 9.0+): %s", ida_kernwin.get_kernel_version())
+        logger.warning(
+            "IDA too old (must be 9.0+): %s", ida_kernwin.get_kernel_version()
+        )
         return False
 
     return True
@@ -26,8 +31,10 @@ def should_load():
 
 if should_load():
     try:
+        from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QVBoxLayout
     except ImportError:
+        from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QVBoxLayout
 
     from settings_editor.controller import SettingsController
@@ -64,6 +71,15 @@ if should_load():
             if self.form_registry is not None:
                 self.form_registry[self.TITLE] = self
 
+        def select_plugin(self, plugin_name: str) -> bool:
+            if self.view is None:
+                return False
+            items = self.view.plugin_list.findItems(plugin_name, Qt.MatchExactly)
+            if not items:
+                return False
+            self.view.plugin_list.setCurrentItem(items[0])
+            return True
+
         def OnClose(self, form):
             if self.form_registry is not None:
                 self.form_registry.pop(self.TITLE, None)
@@ -90,8 +106,11 @@ if should_load():
             self.form_registry: dict[str, settings_manager_form_t] = {}
             self.init()
 
+        IDC_FUNC_NAME = "ida_settings_show_plugin_settings"
+
         def init(self):
             self._register_actions()
+            self._register_idc_func()
 
         def _register_actions(self):
             action_desc = ida_kernwin.action_desc_t(
@@ -113,17 +132,38 @@ if should_load():
             )
 
         def _unregister_actions(self):
-            ida_kernwin.detach_action_from_menu(self.MENU_PATH_PLUGINS, self.ACTION_NAME)
-            ida_kernwin.detach_action_from_menu(self.MENU_PATH_SUBVIEWS, self.ACTION_NAME)
+            ida_kernwin.detach_action_from_menu(
+                self.MENU_PATH_PLUGINS, self.ACTION_NAME
+            )
+            ida_kernwin.detach_action_from_menu(
+                self.MENU_PATH_SUBVIEWS, self.ACTION_NAME
+            )
             ida_kernwin.unregister_action(self.ACTION_NAME)
 
-        def show_settings_manager(self):
+        def _register_idc_func(self):
+            def idc_show_settings(plugin_name: str) -> str:
+                self.show_settings_manager(plugin_name)
+                return plugin_name
+
+            if ida_expr.add_idc_func(
+                self.IDC_FUNC_NAME, idc_show_settings, (ida_expr.VT_STR,)
+            ):
+                logger.debug("registered %s IDC function", self.IDC_FUNC_NAME)
+            else:
+                logger.warning("failed to register %s IDC function", self.IDC_FUNC_NAME)
+
+        def _unregister_idc_func(self):
+            ida_expr.del_idc_func(self.IDC_FUNC_NAME)
+
+        def show_settings_manager(self, plugin_name: str = ""):
             caption = "Plugin Settings Manager"
 
             if caption in self.form_registry:
                 widget = ida_kernwin.find_widget(caption)
                 if widget:
                     ida_kernwin.activate_widget(widget, True)
+                    if plugin_name:
+                        self.form_registry[caption].select_plugin(plugin_name)
                     return
 
             form = settings_manager_form_t(caption, self.form_registry)
@@ -137,11 +177,15 @@ if should_load():
                 ),
             )
 
+            if plugin_name:
+                form.select_plugin(plugin_name)
+
         def run(self, arg):
             self.show_settings_manager()
             return True
 
         def term(self):
+            self._unregister_idc_func()
             self._unregister_actions()
 
     class settings_editor_plugin_t(ida_idaapi.plugin_t):

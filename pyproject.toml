@@ -1,6 +1,6 @@
 [project]
 name = "ida-settings"
-version = "3.4.1"
+version = "3.5.1"
 description = "Fetch configuration values for IDA Pro plugins"
 readme = "readme.md"
 authors = [
