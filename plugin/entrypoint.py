@@ -16,10 +16,14 @@ def should_load():
         return False
 
     kernel_version: tuple[int, ...] = tuple(
-        int(part) for part in ida_kernwin.get_kernel_version().split(".") if part.isdigit()
+        int(part)
+        for part in ida_kernwin.get_kernel_version().split(".")
+        if part.isdigit()
     ) or (0,)
     if kernel_version < (9, 0):
-        logger.warning("IDA too old (must be 9.0+): %s", ida_kernwin.get_kernel_version())
+        logger.warning(
+            "IDA too old (must be 9.0+): %s", ida_kernwin.get_kernel_version()
+        )
         return False
 
     return True
@@ -128,8 +132,12 @@ if should_load():
             )
 
         def _unregister_actions(self):
-            ida_kernwin.detach_action_from_menu(self.MENU_PATH_PLUGINS, self.ACTION_NAME)
-            ida_kernwin.detach_action_from_menu(self.MENU_PATH_SUBVIEWS, self.ACTION_NAME)
+            ida_kernwin.detach_action_from_menu(
+                self.MENU_PATH_PLUGINS, self.ACTION_NAME
+            )
+            ida_kernwin.detach_action_from_menu(
+                self.MENU_PATH_SUBVIEWS, self.ACTION_NAME
+            )
             ida_kernwin.unregister_action(self.ACTION_NAME)
 
         def _register_idc_func(self):
@@ -137,7 +145,9 @@ if should_load():
                 self.show_settings_manager(plugin_name)
                 return plugin_name
 
-            if ida_expr.add_idc_func(self.IDC_FUNC_NAME, idc_show_settings, (ida_expr.VT_STR,)):
+            if ida_expr.add_idc_func(
+                self.IDC_FUNC_NAME, idc_show_settings, (ida_expr.VT_STR,)
+            ):
                 logger.debug("registered %s IDC function", self.IDC_FUNC_NAME)
             else:
                 logger.warning("failed to register %s IDC function", self.IDC_FUNC_NAME)
