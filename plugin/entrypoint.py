@@ -102,7 +102,7 @@ if should_load():
             self.form_registry: dict[str, settings_manager_form_t] = {}
             self.init()
 
-        IDC_FUNC_NAME = "ida_settings_show"
+        IDC_FUNC_NAME = "ida_settings_show_plugin_settings"
 
         def init(self):
             self._register_actions()

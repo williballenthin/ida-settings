@@ -60,5 +60,5 @@ Other plugins can open the settings UI focused on a specific plugin via IDC:
 
 ```py
 import idc
-idc.eval_idc('ida_settings_show("my-plugin-name")')
+idc.eval_idc('ida_settings_show_plugin_settings("my-plugin-name")')
 ```
