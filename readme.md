@@ -62,3 +62,84 @@ Other plugins can open the settings UI focused on a specific plugin via IDC:
 import idc
 idc.eval_idc('ida_settings_show_plugin_settings("my-plugin-name")')
 ```
+
+### Integration with HCLI
+
+HCLI-compatible IDA plugins can declare settings that are set/fetched with ida-settings. An `ida-plugin.json` file
+may have a settings block like:
+
+```json
+    "settings": [
+      {
+        "key": "required_api_key",
+        "type": "string",
+        "required": true,
+        "name": "Demo API Key",
+        "documentation": "Required API key for authentication (cannot be deleted)"
+      },
+      {
+        "key": "key1",
+        "type": "string",
+        "required": false,
+        "default": "default-value",
+        "name": "Demo String Setting",
+        "documentation": "A demo string setting to test the settings editor"
+      },
+      {
+        "key": "key2",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "name": "Demo Boolean Setting",
+        "documentation": "A demo boolean setting to test the settings editor"
+      },
+      {
+        "key": "log_level",
+        "type": "string",
+        "required": false,
+        "default": "info",
+        "name": "Demo Log Level",
+        "documentation": "Logging verbosity level",
+        "choices": ["debug", "info", "warning", "error"]
+      },
+      {
+        "key": "api_endpoint",
+        "type": "string",
+        "required": false,
+        "default": "https://api.example.com",
+        "name": "Demo API Endpoint",
+        "documentation": "URL for the API endpoint (must start with https://)",
+        "validation_pattern": "^https://.*$"
+      },
+      {
+        "key": "enable_debug_mode",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "name": "Demo Enable Debug Mode",
+        "documentation": "Enable verbose debug logging and diagnostics"
+      },
+      {
+        "key": "timeout",
+        "type": "string",
+        "required": true,
+        "default": "30",
+        "name": "Demo Timeout",
+        "documentation": "Request timeout in seconds (must be a positive integer)",
+        "validation_pattern": "^[1-9][0-9]*$"
+      }
+    ],
+    ...
+```
+
+and HCLI will prompt for the settings during installation:
+
+```
+configure 5 settings:
+? Demo String Setting default-value
+? Demo Boolean Setting No
+? Demo API Endpoint https://api.example.com
+? Demo Enable Debug Mode No
+? Demo Timeout 30
+Installed plugin: demo-settings==1.0.0
+```
