@@ -145,7 +145,39 @@ def import_qtcore():
         raise ImportError("No module named PyQt5 or PySide6")
 
 
-QtCore = import_qtcore()
+_QTCORE = None
+
+
+def _qtcore():
+    """Return QtCore, importing the binding on first use.
+
+    Deliberately *not* called at module scope. ``ida_settings/__init__`` imports
+    this module for ``IDASettings``, so a module-scope ``import_qtcore()`` makes
+    every consumer of the modern hcli-backed API load Qt as a side effect --
+    even though that API touches no Qt at all.
+
+    Inside a non-GUI IDA that is fatal rather than merely wasteful: IDA answers
+    the PyQt5 import with its own compatibility shim, which constructs a
+    QMessageBox (<IDA>/python/PyQt5/utils.py confirm_decision). A QWidget with
+    no QApplication calls qFatal(), so the process dies with SIGABRT. That is an
+    abort(), not an exception, so the ``except (ImportError, NotImplementedError)``
+    around this module's import cannot catch it.
+
+    Every QtCore use in this module is inside a function, so deferring costs
+    nothing.
+    """
+    global _QTCORE
+    if _QTCORE is None:
+        _QTCORE = import_qtcore()
+    return _QTCORE
+
+
+def __getattr__(name):
+    # PEP 562: keep ``ida_settings.legacy.QtCore`` working for external
+    # callers, resolving it on first access rather than at import.
+    if name == "QtCore":
+        return _qtcore()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 CONFIG_FILE_NANE = ".ida-settings.ini"
 IDA_SETTINGS_ORGANIZATION = "IDAPython"
@@ -314,7 +346,7 @@ def has_qsettings_write_permission(settings):
     settings.sync()
     # there's a race here, if another thread/process also
     # performs the same check at the same time
-    if settings.status() != QtCore.QSettings.NoError:
+    if settings.status() != _qtcore().QSettings.NoError:
         return False
     if settings.value(MARKER_KEY) != value:
         return False
@@ -381,8 +413,8 @@ class SystemIDASettings(IDASettingsBase, DictMixin):
 
     def __init__(self, plugin_name, *args, **kwargs):
         super(SystemIDASettings, self).__init__(plugin_name, *args, **kwargs)
-        s = QtCore.QSettings(
-            QtCore.QSettings.SystemScope,
+        s = _qtcore().QSettings(
+            _qtcore().QSettings.SystemScope,
             IDA_SETTINGS_ORGANIZATION,
             IDA_SETTINGS_APPLICATION,
         )
@@ -417,8 +449,8 @@ class UserIDASettings(IDASettingsBase, DictMixin):
 
     def __init__(self, plugin_name, *args, **kwargs):
         super(UserIDASettings, self).__init__(plugin_name, *args, **kwargs)
-        s = QtCore.QSettings(
-            QtCore.QSettings.UserScope,
+        s = _qtcore().QSettings(
+            _qtcore().QSettings.UserScope,
             IDA_SETTINGS_ORGANIZATION,
             IDA_SETTINGS_APPLICATION,
         )
@@ -462,7 +494,7 @@ class DirectoryIDASettings(IDASettingsBase, DictMixin):
         config_directory = kwargs.pop("directory")
         super(DirectoryIDASettings, self).__init__(plugin_name, *args, **kwargs)
         config_path = get_directory_config_path(config_directory)
-        s = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
+        s = _qtcore().QSettings(config_path, _qtcore().QSettings.IniFormat)
         s.beginGroup(self._plugin_name)
         self._qsettings = QSettingsIDASettings(s)
 
@@ -803,8 +835,8 @@ class IDASettings(object):
 
         rtype: Sequence[str]
         """
-        return QtCore.QSettings(
-            QtCore.QSettings.SystemScope,
+        return _qtcore().QSettings(
+            _qtcore().QSettings.SystemScope,
             IDA_SETTINGS_ORGANIZATION,
             IDA_SETTINGS_APPLICATION,
         ).childGroups()[:]
@@ -820,8 +852,8 @@ class IDASettings(object):
 
         rtype: Sequence[str]
         """
-        return QtCore.QSettings(
-            QtCore.QSettings.UserScope,
+        return _qtcore().QSettings(
+            _qtcore().QSettings.UserScope,
             IDA_SETTINGS_ORGANIZATION,
             IDA_SETTINGS_APPLICATION,
         ).childGroups()[:]
@@ -840,9 +872,9 @@ class IDASettings(object):
         rtype: Sequence[str]
         """
         ensure_ida_loaded()
-        return QtCore.QSettings(
+        return _qtcore().QSettings(
             get_directory_config_path(directory=config_directory),
-            QtCore.QSettings.IniFormat,
+            _qtcore().QSettings.IniFormat,
         ).childGroups()[:]
 
     @staticmethod
