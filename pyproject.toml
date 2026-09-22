@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "ida-hcli>=0.14.2"
+    "ida-hcli>=0.25.0"
 ]
 
 [build-system]

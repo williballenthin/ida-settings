@@ -44,7 +44,7 @@ hcli plugin install ida-settings-editor
 
 ### Features
 
-- Browse all plugins with settings
+- Browse all plugins with settings, including component plugins within suites
 - Edit settings with appropriate UI controls
 - Immediate validation and feedback
 - Revert to defaults

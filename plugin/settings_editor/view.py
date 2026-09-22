@@ -9,6 +9,7 @@ try:
         QLabel,
         QLineEdit,
         QListWidget,
+        QListWidgetItem,
         QPushButton,
         QScrollArea,
         QSplitter,
@@ -23,6 +24,7 @@ except ImportError:
         QLabel,
         QLineEdit,
         QListWidget,
+        QListWidgetItem,
         QPushButton,
         QScrollArea,
         QSplitter,
@@ -203,6 +205,29 @@ class plugin_list_view_t(QListWidget):
     def __init__(self, parent=None):
         """Initialize plugin list view."""
         super().__init__(parent)
+
+    def add_plugin_item(self, plugin_name: str, display_text: str, *, selectable: bool = True):
+        """Add a plugin entry, storing plugin_name as item data."""
+        item = QListWidgetItem(display_text)
+        item.setData(Qt.UserRole, plugin_name)
+        if not selectable:
+            item.setFlags(item.flags() & ~Qt.ItemIsSelectable & ~Qt.ItemIsEnabled)
+        self.addItem(item)
+
+    def get_selected_plugin_name(self) -> str | None:
+        """Return the plugin name for the current selection, or None."""
+        item = self.currentItem()
+        if item is None:
+            return None
+        return item.data(Qt.UserRole)
+
+    def select_first_selectable(self):
+        """Set selection to the first selectable item."""
+        for i in range(self.count()):
+            item = self.item(i)
+            if item.flags() & Qt.ItemIsSelectable:
+                self.setCurrentRow(i)
+                return
 
 
 class settings_manager_widget_t(QWidget):

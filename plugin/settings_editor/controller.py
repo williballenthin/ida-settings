@@ -21,19 +21,37 @@ class SettingsController:
         """Connect model and view signals."""
         self.model.pluginsLoaded.connect(self._on_plugins_loaded)
 
-        self.view.plugin_list.currentTextChanged.connect(self._on_plugin_selected)
+        self.view.plugin_list.currentItemChanged.connect(self._on_plugin_selected)
 
     def _on_plugins_loaded(self, plugins: list):
         """Handle plugins loaded."""
         self.view.plugin_list.clear()
-        if plugins:
-            self.view.plugin_list.addItems(plugins)
-            self.view.plugin_list.setCurrentRow(0)
-        else:
+        if not plugins:
             self.view.settings_editor.show_message("No plugins with settings found")
+            return
 
-    def _on_plugin_selected(self, plugin_name: str):
+        suite_headers_added = set()
+        for plugin_name in plugins:
+            parent = self.model.parent_suite(plugin_name)
+            if parent is not None:
+                # suites with their own settings are already selectable entries;
+                # only add a non-selectable group header for suites that don't.
+                if parent not in suite_headers_added and parent not in plugins:
+                    self.view.plugin_list.add_plugin_item(
+                        parent, parent, selectable=False
+                    )
+                    suite_headers_added.add(parent)
+                self.view.plugin_list.add_plugin_item(
+                    plugin_name, f"    {plugin_name}"
+                )
+            else:
+                self.view.plugin_list.add_plugin_item(plugin_name, plugin_name)
+
+        self.view.plugin_list.select_first_selectable()
+
+    def _on_plugin_selected(self, _current=None, _previous=None):
         """Handle plugin selection."""
+        plugin_name = self.view.plugin_list.get_selected_plugin_name()
         if not plugin_name:
             self.view.settings_editor.clear_editors()
             return
