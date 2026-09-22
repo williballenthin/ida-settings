@@ -96,6 +96,7 @@ class SettingsModel(QObject):
         self.pluginsLoaded.emit(self._plugins)
 
     def parent_suite(self, plugin_name: str) -> str | None:
+        """Return the suite name if plugin_name is a component, else None."""
         return self._component_of.get(plugin_name)
 
     def get_plugin_settings(self, plugin_name: str) -> list[PluginSettingDescriptor]:

@@ -34,6 +34,8 @@ class SettingsController:
         for plugin_name in plugins:
             parent = self.model.parent_suite(plugin_name)
             if parent is not None:
+                # suites with their own settings are already selectable entries;
+                # only add a non-selectable group header for suites that don't.
                 if parent not in suite_headers_added and parent not in plugins:
                     self.view.plugin_list.add_plugin_item(
                         parent, parent, selectable=False
