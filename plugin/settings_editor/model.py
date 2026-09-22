@@ -7,13 +7,13 @@ except ImportError:
     from PySide6.QtCore import QObject, Signal
 
 from hcli.lib.ida.plugin import ChoiceValueError, PluginSettingDescriptor
-from hcli.lib.ida.plugin.install import (
-    get_metadata_from_plugin_directory,
-    get_plugin_directory,
-)
+from hcli.lib.ida.plugin.components import walk_component_tree_from_directory
+from hcli.lib.ida.plugin.install import get_metadata_from_plugin_directory
 from hcli.lib.ida.plugin.settings import (
     del_plugin_setting,
     get_plugin_setting,
+    has_plugin_setting,
+    resolve_plugin_directory,
     set_plugin_setting,
 )
 
@@ -31,11 +31,13 @@ class SettingsModel(QObject):
         super().__init__()
         self._plugins = []
         self._plugin_metadata = {}
+        self._component_of = {}
 
     def load_plugins(self):
-        """Enumerate installed plugins with settings."""
+        """Enumerate installed plugins with settings, including suite components."""
         self._plugins = []
         self._plugin_metadata = {}
+        self._component_of = {}
 
         from pathlib import Path
 
@@ -48,7 +50,9 @@ class SettingsModel(QObject):
             self.pluginsLoaded.emit([])
             return
 
-        for entry in plugins_dir.iterdir():
+        groups = []
+
+        for entry in sorted(plugins_dir.iterdir(), key=lambda e: e.name.lower()):
             if not entry.is_dir():
                 continue
 
@@ -58,19 +62,46 @@ class SettingsModel(QObject):
 
             try:
                 metadata = get_metadata_from_plugin_directory(entry)
-                if metadata.plugin.settings:
-                    self._plugins.append(entry.name)
-                    self._plugin_metadata[entry.name] = metadata
             except Exception:
                 continue
 
-        self._plugins.sort()
+            suite_name = entry.name
+            suite_has_settings = bool(metadata.plugin.settings)
+            components_with_settings = []
+
+            if suite_has_settings:
+                self._plugin_metadata[suite_name] = metadata
+
+            if metadata.plugin.components:
+                try:
+                    tree = walk_component_tree_from_directory(entry)
+                    for _comp_path, comp_meta in tree:
+                        if comp_meta.plugin.settings:
+                            comp_name = comp_meta.plugin.name
+                            self._plugin_metadata[comp_name] = comp_meta
+                            self._component_of[comp_name] = suite_name
+                            components_with_settings.append(comp_name)
+                except ValueError:
+                    pass
+
+            if suite_has_settings or components_with_settings:
+                groups.append((suite_name, suite_has_settings, components_with_settings))
+
+        for suite_name, suite_has_settings, components in groups:
+            if suite_has_settings:
+                self._plugins.append(suite_name)
+            for comp_name in sorted(components, key=str.lower):
+                self._plugins.append(comp_name)
+
         self.pluginsLoaded.emit(self._plugins)
+
+    def parent_suite(self, plugin_name: str) -> str | None:
+        return self._component_of.get(plugin_name)
 
     def get_plugin_settings(self, plugin_name: str) -> list[PluginSettingDescriptor]:
         """Get all setting descriptors for a plugin."""
         if plugin_name not in self._plugin_metadata:
-            plugin_path = get_plugin_directory(plugin_name)
+            plugin_path = resolve_plugin_directory(plugin_name)
             metadata = get_metadata_from_plugin_directory(plugin_path)
             self._plugin_metadata[plugin_name] = metadata
 
@@ -135,11 +166,4 @@ class SettingsModel(QObject):
 
     def is_setting_explicit(self, plugin_name: str, key: str) -> bool:
         """Check if setting is explicitly set vs using default."""
-        from hcli.lib.ida import get_ida_config
-
-        config = get_ida_config()
-        if plugin_name not in config.plugins:
-            return False
-
-        plugin_config = config.plugins[plugin_name]
-        return key in plugin_config.settings
+        return has_plugin_setting(plugin_name, key)
