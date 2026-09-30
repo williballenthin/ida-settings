@@ -221,6 +221,18 @@ class plugin_list_view_t(QListWidget):
             return None
         return item.data(Qt.UserRole)
 
+    def select_plugin_name(self, plugin_name: str) -> bool:
+        """Select the selectable entry whose plugin name matches, by item data not display text."""
+        for i in range(self.count()):
+            item = self.item(i)
+            if (
+                item.data(Qt.UserRole) == plugin_name
+                and item.flags() & Qt.ItemIsSelectable
+            ):
+                self.setCurrentRow(i)
+                return True
+        return False
+
     def select_first_selectable(self):
         """Set selection to the first selectable item."""
         for i in range(self.count()):
