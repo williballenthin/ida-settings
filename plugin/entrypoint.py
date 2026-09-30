@@ -31,10 +31,8 @@ def should_load():
 
 if should_load():
     try:
-        from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QVBoxLayout
     except ImportError:
-        from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QVBoxLayout
 
     from settings_editor.controller import SettingsController
@@ -74,10 +72,9 @@ if should_load():
         def select_plugin(self, plugin_name: str) -> bool:
             if self.view is None:
                 return False
-            items = self.view.plugin_list.findItems(plugin_name, Qt.MatchExactly)
-            if not items:
+            if not self.view.plugin_list.select_plugin_name(plugin_name):
+                logger.warning("no settings found for plugin: %s", plugin_name)
                 return False
-            self.view.plugin_list.setCurrentItem(items[0])
             return True
 
         def OnClose(self, form):
