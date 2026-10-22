@@ -11,13 +11,9 @@ Usage:
 
 import sys
 
-try:
-    from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget
-except ImportError:
-    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
-
 from settings_editor.controller import SettingsController
 from settings_editor.model import SettingsModel
+from settings_editor.qt import QApplication, QVBoxLayout, QWidget
 from settings_editor.view import settings_manager_widget_t
 
 

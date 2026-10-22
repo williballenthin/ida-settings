@@ -30,13 +30,9 @@ def should_load():
 
 
 if should_load():
-    try:
-        from PyQt5.QtWidgets import QVBoxLayout
-    except ImportError:
-        from PySide6.QtWidgets import QVBoxLayout
-
     from settings_editor.controller import SettingsController
     from settings_editor.model import SettingsModel
+    from settings_editor.qt import QVBoxLayout
     from settings_editor.view import settings_manager_widget_t
 
     class settings_manager_form_t(ida_kernwin.PluginForm):
