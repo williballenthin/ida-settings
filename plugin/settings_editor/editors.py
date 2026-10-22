@@ -2,12 +2,9 @@
 
 from typing import Callable, Tuple
 
-try:
-    from PyQt5.QtWidgets import QCheckBox, QComboBox, QLineEdit, QWidget
-except ImportError:
-    from PySide6.QtWidgets import QCheckBox, QComboBox, QLineEdit, QWidget
-
 from hcli.lib.ida.plugin import PluginSettingDescriptor
+
+from settings_editor.qt import QCheckBox, QComboBox, QLineEdit, QWidget
 
 
 def create_boolean_editor(

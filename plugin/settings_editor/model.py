@@ -1,11 +1,5 @@
 """Settings data model."""
 
-try:
-    from PyQt5.QtCore import QObject
-    from PyQt5.QtCore import pyqtSignal as Signal
-except ImportError:
-    from PySide6.QtCore import QObject, Signal
-
 from hcli.lib.ida.plugin import ChoiceValueError, PluginSettingDescriptor
 from hcli.lib.ida.plugin.components import walk_component_tree_from_directory
 from hcli.lib.ida.plugin.install import get_metadata_from_plugin_directory
@@ -16,6 +10,8 @@ from hcli.lib.ida.plugin.settings import (
     resolve_plugin_directory,
     set_plugin_setting,
 )
+
+from settings_editor.qt import QObject, Signal
 
 
 class SettingsModel(QObject):

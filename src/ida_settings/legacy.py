@@ -113,28 +113,30 @@ def import_qtcore():
         has_ida = False
 
     if has_ida:
+        # IDA 9.2+ ships PySide6 and answers a PyQt5 import with a compatibility
+        # shim that shows a modal "enable the PyQt5 shim?" dialog. So use PySide6
+        # there, and PyQt5 only on older IDA, which ships PyQt5 alone.
+        kernel_version = tuple(
+            int(part)
+            for part in idaapi.get_kernel_version().split(".")
+            if part.isdigit()
+        ) or (0,)
+
         old_path = sys.path[:]
         try:
             ida_python_path = os.path.dirname(idaapi.__file__)
             sys.path.insert(0, ida_python_path)
-            try:
-                from PyQt5 import QtCore
+            if kernel_version >= (9, 2):
+                from PySide6 import QtCore
 
                 return QtCore
-            except ImportError:
-                from PySide6 import QtCore
+            else:
+                from PyQt5 import QtCore
 
                 return QtCore
         finally:
             sys.path = old_path
     else:
-        try:
-            from PyQt5 import QtCore
-
-            return QtCore
-        except ImportError:
-            pass
-
         try:
             from PySide6 import QtCore
 
@@ -142,7 +144,14 @@ def import_qtcore():
         except ImportError:
             pass
 
-        raise ImportError("No module named PyQt5 or PySide6")
+        try:
+            from PyQt5 import QtCore
+
+            return QtCore
+        except ImportError:
+            pass
+
+        raise ImportError("No module named PySide6 or PyQt5")
 
 
 _QTCORE = None

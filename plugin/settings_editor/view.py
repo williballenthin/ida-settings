@@ -1,40 +1,23 @@
 """Settings view widgets."""
 
-try:
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtCore import pyqtSignal as Signal
-    from PyQt5.QtWidgets import (
-        QComboBox,
-        QHBoxLayout,
-        QLabel,
-        QLineEdit,
-        QListWidget,
-        QListWidgetItem,
-        QPushButton,
-        QScrollArea,
-        QSplitter,
-        QVBoxLayout,
-        QWidget,
-    )
-except ImportError:
-    from PySide6.QtCore import Qt, Signal
-    from PySide6.QtWidgets import (
-        QComboBox,
-        QHBoxLayout,
-        QLabel,
-        QLineEdit,
-        QListWidget,
-        QListWidgetItem,
-        QPushButton,
-        QScrollArea,
-        QSplitter,
-        QVBoxLayout,
-        QWidget,
-    )
-
 from hcli.lib.ida.plugin import PluginSettingDescriptor
 
 from settings_editor.editors import create_editor_for_setting
+from settings_editor.qt import (
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QPushButton,
+    QScrollArea,
+    QSplitter,
+    Qt,
+    QVBoxLayout,
+    QWidget,
+    Signal,
+)
 
 
 class setting_editor_row_t(QWidget):
